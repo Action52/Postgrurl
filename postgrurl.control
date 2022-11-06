@@ -1,0 +1,5 @@
+# postgrurl extension
+comment = 'Implements java.net.URL class into postgres type.'
+default_version = '1.0'
+module_pathname = '$libdir/postgrurl'
+relocatable = true
