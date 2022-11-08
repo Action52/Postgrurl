@@ -1,6 +1,7 @@
 EXTENSION   = postgrurl
 MODULES     = postgrurl
 DATA        = postgrurl--1.0.sql postgrurl.control
+REGRESS		= postgrurl_test
 
 LDFLAGS=-lrt
 

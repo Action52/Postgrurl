@@ -1,5 +1,3 @@
-DROP TABLE testurl;
-DROP EXTENSION postgrurl CASCADE;
 CREATE EXTENSION postgrurl;
 CREATE TABLE testurl(id int, purl postgrurl);
 INSERT INTO testurl(id, purl) VALUES(1, 'test');
@@ -22,3 +20,4 @@ SELECT postgrurl_lte('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
 SELECT postgrurl_lte('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
 SELECT postgrurl_lte('eacebook.com'::postgrurl, 'facebook.com'::postgrurl);
 
+DROP TABLE testurl;
