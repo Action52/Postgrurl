@@ -1,24 +1,82 @@
-DROP TABLE testurl;
-DROP EXTENSION postgrurl CASCADE;
 CREATE EXTENSION postgrurl;
 CREATE TABLE testurl(id int, purl postgrurl);
 INSERT INTO testurl(id, purl) VALUES(1, 'test');
 SELECT * FROM testurl;
+ id | purl 
+----+------
+  1 | test
+(1 row)
 
 SELECT postgrurl_eq('12345'::postgrurl, '123456'::postgrurl);
+ postgrurl_eq 
+--------------
+ f
+(1 row)
+
 SELECT postgrurl_eq('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ postgrurl_eq 
+--------------
+ t
+(1 row)
 
 SELECT postgrurl_gt('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ postgrurl_gt 
+--------------
+ f
+(1 row)
+
 SELECT postgrurl_gt('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
+ postgrurl_gt 
+--------------
+ t
+(1 row)
 
 SELECT postgrurl_gte('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ postgrurl_gte 
+---------------
+ t
+(1 row)
+
 SELECT postgrurl_gte('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
+ postgrurl_gte 
+---------------
+ t
+(1 row)
+
 SELECT postgrurl_gte('eacebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ postgrurl_gte 
+---------------
+ f
+(1 row)
 
 SELECT postgrurl_lt('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ postgrurl_lt 
+--------------
+ f
+(1 row)
+
 SELECT postgrurl_lt('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
+ postgrurl_lt 
+--------------
+ f
+(1 row)
 
 SELECT postgrurl_lte('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
-SELECT postgrurl_lte('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
-SELECT postgrurl_lte('eacebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ postgrurl_lte 
+---------------
+ t
+(1 row)
 
+SELECT postgrurl_lte('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
+ postgrurl_lte 
+---------------
+ f
+(1 row)
+
+SELECT postgrurl_lte('eacebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ postgrurl_lte 
+---------------
+ t
+(1 row)
+
+DROP TABLE testurl;
