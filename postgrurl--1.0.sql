@@ -14,12 +14,12 @@ AS '$libdir/postgrurl'
 LANGUAGE C IMMUTABLE STRICT;
 
 -- Type Creation
-CREATE TYPE postgrurl(
+CREATE TYPE postgrurl (
     INPUT           =   url_in,
     OUTPUT          =   url_out,
 --    RECEIVE     =   url_rcv,
 --    SEND        =   url_send,
-    INTERNALLENGTH  =   306
+    INTERNALLENGTH  =   1000
 );
 
 COMMENT ON TYPE postgrurl IS 'Type to handle URL strings. Implements useful functions that mimic java.net.URL class.';

@@ -1,6 +1,12 @@
 CREATE EXTENSION postgrurl;
 CREATE TABLE testurl(id int, purl postgrurl);
-INSERT INTO testurl(id, purl) VALUES(1, 'test');
+INSERT INTO testurl(id, purl) VALUES(1, 'http://test.com');
+INSERT INTO testurl(id, purl) VALUES(2, 'facebook.com');
+INSERT INTO testurl(id, purl) VALUES(3, 'https://facebook.com');
+INSERT INTO testurl(id, purl) VALUES(4, 'https://facebook.com/about/');
+INSERT INTO testurl(id, purl) VALUES(5, 'https://facebook.com?q=querytest&attr=1');
+
+
 SELECT * FROM testurl;
 
 SELECT postgrurl_eq('12345'::postgrurl, '123456'::postgrurl);
