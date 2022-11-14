@@ -6,13 +6,13 @@ INSERT INTO testurl(id, purl) VALUES(3, 'https://facebook.com');
 INSERT INTO testurl(id, purl) VALUES(4, 'https://facebook.com/about/');
 INSERT INTO testurl(id, purl) VALUES(5, 'https://facebook.com?q=querytest&attr=1');
 SELECT * FROM testurl;
- id |                                                              purl                                                               
-----+---------------------------------------------------------------------------------------------------------------------------------
+ id |                                                                   purl                                                                    
+----+-------------------------------------------------------------------------------------------------------------------------------------------
   1 | raw: http://test.com, scheme: http, host: (null), file: (null), query: (null), port: 0, defaultPort: 0
   2 | raw: facebook.com, scheme: (null), host: (null), file: (null), query: (null), port: 0, defaultPort: 0
   3 | raw: https://facebook.com, scheme: https, host: (null), file: (null), query: (null), port: 0, defaultPort: 0
   4 | raw: https://facebook.com/about/, scheme: https, host: (null), file: (null), query: (null), port: 0, defaultPort: 0
-  5 | raw: https://facebook.com?q=querytest&attr=1, scheme: https, host: (null), file: (null), query: (null), port: 0, defaultPort: 0
+  5 | raw: https://facebook.com?q=querytest&attr=1, scheme: https, host: (null), file: (null), query: querytest&attr=1, port: 0, defaultPort: 0
 (5 rows)
 
 SELECT postgrurl_eq('12345'::postgrurl, '123456'::postgrurl);

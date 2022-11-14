@@ -1,6 +1,6 @@
 diff -U3 /Users/alfredo.leon/Desktop/Postgrurl/expected/postgrurl_test.out /Users/alfredo.leon/Desktop/Postgrurl/results/postgrurl_test.out
 --- /Users/alfredo.leon/Desktop/Postgrurl/expected/postgrurl_test.out	2022-11-08 18:11:46.000000000 +0100
-+++ /Users/alfredo.leon/Desktop/Postgrurl/results/postgrurl_test.out	2022-11-09 19:24:36.000000000 +0100
++++ /Users/alfredo.leon/Desktop/Postgrurl/results/postgrurl_test.out	2022-11-09 23:21:40.000000000 +0100
 @@ -1,15 +1,19 @@
  CREATE EXTENSION postgrurl;
  CREATE TABLE testurl(id int, purl postgrurl);
@@ -17,13 +17,13 @@ diff -U3 /Users/alfredo.leon/Desktop/Postgrurl/expected/postgrurl_test.out /User
 -  2 | facebook.com
 -  3 | https://facebook.com
 -(3 rows)
-+ id |                                                              purl                                                               
-+----+---------------------------------------------------------------------------------------------------------------------------------
++ id |                                                                   purl                                                                    
++----+-------------------------------------------------------------------------------------------------------------------------------------------
 +  1 | raw: http://test.com, scheme: http, host: (null), file: (null), query: (null), port: 0, defaultPort: 0
 +  2 | raw: facebook.com, scheme: (null), host: (null), file: (null), query: (null), port: 0, defaultPort: 0
 +  3 | raw: https://facebook.com, scheme: https, host: (null), file: (null), query: (null), port: 0, defaultPort: 0
 +  4 | raw: https://facebook.com/about/, scheme: https, host: (null), file: (null), query: (null), port: 0, defaultPort: 0
-+  5 | raw: https://facebook.com?q=querytest&attr=1, scheme: https, host: (null), file: (null), query: (null), port: 0, defaultPort: 0
++  5 | raw: https://facebook.com?q=querytest&attr=1, scheme: https, host: (null), file: (null), query: querytest&attr=1, port: 0, defaultPort: 0
 +(5 rows)
  
  SELECT postgrurl_eq('12345'::postgrurl, '123456'::postgrurl);

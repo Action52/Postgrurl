@@ -15,7 +15,6 @@
 #include "libpq/pqformat.h"
 #include <err.h>
 #include <string.h>
-#include <regex.h>
 
 PG_MODULE_MAGIC;
 
@@ -46,28 +45,27 @@ typedef struct postgrurl postgrurl;
     Constructors
 */
 
-//Helper function to check if a given string url is valid
-int comp_regex(char* rawurl, char* regexExpr, int returnValueIfSuccess){
-    regex_t reegex;
-    int value;
-    value = regcomp(&reegex, regexExpr, 0);
-    value = regexec(&reegex, regexExpr, 0, NULL, 0);
-    if(value == 0){
-        return returnValueIfSuccess;
-    }else if (value==REG_NOMATCH){
-        return -1;
-    }
-    else{
-        return -2;
-    }
-}
+// Taken from https://stackoverflow.com/questions/29788983/split-char-string-with-multi-character-delimiter-in-c
+char *multi_tok(char *input, char *delimiter) {
+    static char *string;
+    if (input != NULL)
+        string = input;
 
-//Under construction, please ignore
-int check_valid_url(char* rawurl){
-    char * expression1 = "\w*://\w*.\w/\w*";
-    char * expression2 = "\w*://\w*.\w:\d{1,6}";
-    int is_valid_expr_1 = comp_regex(rawurl, expression1, 1);
-    int is_valid_expr_2 = comp_regex(rawurl, expression2, 2);
+    if (string == NULL)
+        return string;
+
+    char *end = strstr(string, delimiter);
+    if (end == NULL) {
+        char *temp = string;
+        string = NULL;
+        return temp;
+    }
+
+    char *temp = string;
+
+    *end = '\0';
+    string = end + strlen(delimiter);
+    return temp;
 }
 
 // Helper function to parse a raw url
@@ -83,20 +81,29 @@ postgrurl* url_from_str(char* rawurl){
     url->defaultPort = NULL;
     // First separate the scheme
     //char * scheme = (char *) palloc(SCHEME_MAX_SIZE*sizeof(char) + 1);
-    char *token = strtok(aux_url, "://");
+    char *token = multi_tok(aux_url, "://");
     if(strcmp(token, url->raw) != 0){ // This means that the URL actually contained a scheme.
         url->scheme = strdup(token);
-        aux_url = strtok(NULL, "://");
+        aux_url = multi_tok(NULL, "://");
     }
-    char *token2 = strtok(aux_url, "?q=");
+
+    aux_url = strdup(rawurl);
+    int ntokens = 0;
+    char *token2 = multi_tok(aux_url, "?q=");
+    ntokens++;
+    char * prev;
     while(token2 != NULL){
-        token2 = strtok(NULL, "?q=");
+        prev = strdup(token2);
+        token2 = multi_tok(NULL, "?q=");
+        ntokens++;
     }
-    if (token2 != NULL){
-        url->query = strdup(token2);
+    if (ntokens > 2){
+        url->query = strdup(prev);
     }
+
     return url;
 }
+
 
 //TODO: Implement function, still needs a helper method to split the url into parts.
 postgrurl* URL1(char* spec){
