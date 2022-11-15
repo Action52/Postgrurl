@@ -1,11 +1,20 @@
 CREATE EXTENSION postgrurl;
 CREATE TABLE testurl(id int, purl postgrurl);
 INSERT INTO testurl(id, purl) VALUES(1, 'test');
+INSERT INTO testurl(id, purl) VALUES(2, 'http://test.com');
+INSERT INTO testurl(id, purl) VALUES(3, 'http://test.com/file.txt');
+INSERT INTO testurl(id, purl) VALUES(4, 'http://test.com/random/path/');
+INSERT INTO testurl(id, purl) VALUES(5, 'http://test.com:8162');
+--INSERT INTO testurl(id, purl) VALUES(6, 'http://test.com:8239/hola?query=6');
 SELECT * FROM testurl;
- id | purl 
-----+------
-  1 | test
-(1 row)
+ id |                                          purl                                           
+----+-----------------------------------------------------------------------------------------
+  1 | raw: test:/, scheme: test, host: , file: @, query:
+  2 | raw: http:/test.com, scheme: http, host: test.com
+  3 | raw: http://test.com/file.txt, scheme: http, host: test.com, file: /file.txt
+  4 | raw: http://test.com/random/path, scheme: http, host: test.com, file: /random/path
+  5 | raw: http://test.com:8162, scheme: http, host: test.com, file: /random/path, port: 8162
+(5 rows)
 
 SELECT postgrurl_eq('12345'::postgrurl, '123456'::postgrurl);
  postgrurl_eq 
