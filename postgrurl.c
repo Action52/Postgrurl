@@ -54,76 +54,114 @@ int digits_only(const char *s)
 //Constructor with protocol, host, port, file, query
 postgrurl* new_URL1(char* protocol, char* host,int port,char* file, char* query)
 {
-  char raw[1000]="";
-	postgrurl* url = malloc(sizeof(postgrurl));
-  url->scheme = protocol;
-  url->host = host;
-	url->file = file;
+    char raw[1000];
+    postgrurl* url = palloc(sizeof(postgrurl));
+    url->scheme = strdup(protocol);
+    url->host = strdup(host);
+	url->file = strdup(file);
 	url->port = port;
-	url->query = query;
+	url->query = strdup(query);
 
-  snprintf(raw, sizeof(raw), "%s://%s:%d/%s?%s",
-  protocol, host,port,file,query);
-  url->raw = raw;
+    snprintf(raw, sizeof(raw), "%s://%s:%d/%s?%s",
+    protocol, host,port,file,query);
+    url->raw = strdup(raw);
 
-  return url;
+    return url;
 }
 
 //Constructor with protocol, host, port, file
-postgrurl* new_URL2(char* protocol, char* host,int port,char* file) {
-  char raw[1000]="";
-	postgrurl* url = malloc(sizeof(postgrurl));
-  url->scheme = protocol;
-  url->host = host;
-	url->file = file;
+postgrurl* new_URL2(char* protocol, char* host, int port, char* file) {
+    char raw[1000];
+	postgrurl* url = palloc(sizeof(postgrurl));
+    url->scheme = strdup(protocol);
+    url->host = strdup(host);
+	url->file = strdup(file);
 	url->port = port;
 
-  snprintf(raw, sizeof(raw), "%s://%s:%d%s", protocol, host,port,file);
-  url->raw = raw;
+    snprintf(raw, sizeof(raw), "%s://%s:%d%s", protocol, host,port,file);
+    url->raw = strdup(raw);
 
-  return url;
+    return url;
 }
 
 //Constructor with protocol, host,file
 postgrurl* new_URL3(char* protocol, char* host,char* file) {
-  char raw[1000]="";
-	postgrurl* url = malloc(sizeof(postgrurl));
-  url->scheme = protocol;
-  url->host = host;
-	url->file = file;
+    char raw[1000];
+    postgrurl* url = palloc(sizeof(postgrurl));
+    url->scheme = strdup(protocol);
+    url->host = strdup(host);
+	url->file = strdup(file);
 
-  snprintf(raw, sizeof(raw), "%s://%s/%s", protocol, host,file);
-  url->raw = raw;
+    snprintf(raw, sizeof(raw), "%s://%s%s", protocol, host, file);
+    url->raw = strdup(raw);
 
-  return url;
+    return url;
 }
 
 //Constructor with protocol, host,port
 postgrurl* new_URL4(char* protocol, char* host,int port) {
-  char raw[1000]="";
-  postgrurl* url = malloc(sizeof(postgrurl));
-  url->scheme = protocol;
-  url->host = host;
+    char raw[1000];
+    postgrurl* url = palloc(sizeof(postgrurl));
+    url->scheme = strdup(protocol);
+    url->host = strdup(host);
 	url->port = port;
 
-  snprintf(raw, sizeof(raw), "%s://%s:%d", protocol, host,port);
-	url->raw = raw;
+    snprintf(raw, sizeof(raw), "%s://%s:%d", protocol, host, port);
+    url->raw = strdup(raw);
 
-  return url;
+    return url;
 }
 
 
 //Constructor with protocol, host
 postgrurl* new_URL5(char* protocol, char* host) {
-  char raw[1000]="";
-  postgrurl* url = malloc(sizeof(postgrurl));
-  url->scheme = protocol;
-  url->host = host;
+  char raw[1000];
+  postgrurl* url = palloc(sizeof(postgrurl));
+  url->scheme = strdup(protocol);
+  url->host = strdup(host);
 
-  snprintf(raw, sizeof(raw), "%s://%s", protocol, host);
-  url->raw = raw;
+  snprintf(raw, sizeof(raw), "%s:/%s", protocol, host);
+  url->raw = strdup(raw);
 
   return url;
+}
+
+char * url_to_string(postgrurl* url){
+    char port[5];
+    char defaultPort[5];
+    char * stringed_url = palloc(256*sizeof(char));
+    strcpy(stringed_url, "(");
+    if(url->raw != NULL){
+        strcpy(stringed_url, "raw: ");
+        strcat(stringed_url, url->raw);
+    }
+    if(url->scheme != NULL){
+        strcat(stringed_url, ", scheme: ");
+        strcat(stringed_url, url->scheme);
+    }
+    if(url->host != NULL){
+        strcat(stringed_url, ", host: ");
+        strcat(stringed_url, url->host);
+    }
+    if(url->file != NULL){
+        strcat(stringed_url, ", file: ");
+        strcat(stringed_url, url->file);
+    }
+    if(url->port != NULL){
+        strcat(stringed_url, ", port: ");
+        sprintf(port, "%d", url->port);
+        strcat(stringed_url, port);
+    }
+    if(url->defaultPort != NULL){
+        strcat(stringed_url, ", defaultPort:");
+        sprintf(port, "%d", url->defaultPort);
+        strcat(stringed_url, defaultPort);
+    }
+    if(url->query != NULL){
+        strcat(stringed_url, ", query:");
+        strcat(stringed_url, url->query);
+    }
+    return stringed_url;
 }
 
 
@@ -138,9 +176,9 @@ postgrurl* string_to_url(char* str){
 	char *query_split;
 
 	char scheme[50]="";
-  char host[200]="";
-  char file[500]="";
-  char query[200]="";
+    char host[200]="";
+    char file[500]="";
+    char query[200]="";
 	int port = 0;
 
 
@@ -221,8 +259,8 @@ postgrurl* string_to_url(char* str){
 	{
 		url = new_URL5(scheme, host);
 	}
-
-  return url;
+    strtok(NULL, NULL);
+    return url;
 }
 
 
@@ -252,8 +290,8 @@ Datum url_in(PG_FUNCTION_ARGS){
 PG_FUNCTION_INFO_V1(url_out);
 Datum url_out(PG_FUNCTION_ARGS){
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
-    char *output = (char *) palloc(256*sizeof(char));
-    output = psprintf("%s", url->raw);
+    char *output = url_to_string(url);
+    output = psprintf("%s", output);
     PG_RETURN_CSTRING(output);
 }
 
