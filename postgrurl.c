@@ -275,6 +275,12 @@ Datum less_than(PG_FUNCTION_ARGS);
 Datum greater_than_equals(PG_FUNCTION_ARGS);
 Datum less_than_equals(PG_FUNCTION_ARGS);
 Datum getAuthority(PG_FUNCTION_ARGS);
+Datum getFile(PG_FUNCTION_ARGS);
+Datum getHost(PG_FUNCTION_ARGS);
+Datum getPort(PG_FUNCTION_ARGS);
+Datum getProtocol(PG_FUNCTION_ARGS);
+Datum getQuery(PG_FUNCTION_ARGS);
+Datum getRef(PG_FUNCTION_ARGS);
 
 /*
 Postgres type functions definition
@@ -369,7 +375,7 @@ Datum less_than_equals(PG_FUNCTION_ARGS){
     PG_RETURN_BOOL(false);
 }
 
- PG_FUNCTION_INFO_V1(getAuthority);
+PG_FUNCTION_INFO_V1(getAuthority);
 Datum getAuthority(PG_FUNCTION_ARGS){
     char *rawurl = (postgrurl *) PG_GETARG_CSTRING(0);
     postgrurl *url;
@@ -377,50 +383,162 @@ Datum getAuthority(PG_FUNCTION_ARGS){
     PG_RETURN_NULL();
 }
 
-static int getDefaultPort(postgrurl *url){
-    return 0;
+// // static int getDefaultPort(postgrurl *url){
+// PG_FUNCTION_INFO_V1(getDefaultPort);
+// Datum getDefaultPort(PG_FUNCTION_ARGS){
+//     return 0;
+// }
+
+PG_FUNCTION_INFO_V1(getFile);
+Datum getFile(PG_FUNCTION_ARGS){
+    postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
+    char * output = palloc(50*sizeof(char));
+    
+    if(url->file != NULL){
+        strcat(output, url->file);
+    }
+    else{
+        ereport(ERROR,
+            (
+             errmsg("no file in the url")
+            )
+        );
+    }
+    output = psprintf("%s", output);
+    PG_RETURN_CSTRING(output);
+    pfree(output);
+}
+    
+PG_FUNCTION_INFO_V1(getHost);
+Datum getHost(PG_FUNCTION_ARGS){
+    postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
+    char * output = palloc(50*sizeof(char));
+
+    if(url->file != NULL){
+        strcat(output, url->host);
+    }
+    else{
+        ereport(ERROR,
+            (
+             errmsg("no host in the url")
+            )
+        );
+    }
+    output = psprintf("%s", output);
+    PG_RETURN_CSTRING(output);
+    pfree(output);
 }
 
-static char* getFile(postgrurl *url){
+// PG_FUNCTION_INFO_V1(getPath);
+// Datum getPath(PG_FUNCTION_ARGS){
+// // static char* getPath(postgrurl *url){
+    // everything after host (after the first /)
+//     return 'not implemented yet';
+// }
+
+PG_FUNCTION_INFO_V1(getPort);
+Datum getPort(PG_FUNCTION_ARGS){
+    postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
+    int output;
+
+    if(url->port != NULL){
+        output = url->port;
+    }
+    else{
+        ereport(ERROR,
+            (
+             errmsg("no port in the url")
+            )
+        );
+    }
+    output = psprintf("%d", output);
+    PG_RETURN_INT32(output);
+    pfree(output);
+}
+
+PG_FUNCTION_INFO_V1(getProtocol);
+Datum getProtocol(PG_FUNCTION_ARGS){
+    postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
+    char * output = palloc(50*sizeof(char));
+
+    if(url->scheme != NULL){
+        strcat(output, url->scheme);
+    }
+    else{
+        ereport(ERROR,
+            (
+             errmsg("no protocol in the url")
+            )
+        );
+    }
+    output = psprintf("%s", output);
+    PG_RETURN_CSTRING(output);
+    pfree(output);
+}
+
+PG_FUNCTION_INFO_V1(getQuery);
+Datum getQuery(PG_FUNCTION_ARGS){
+    postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
+    char * output = palloc(50*sizeof(char));
+
+    if(url->query != NULL){
+        strcat(output, url->query);
+    }
+    else{
+        ereport(ERROR,
+            (
+             errmsg("no query in the url")
+            )
+        );
+    }
+    output = psprintf("%s", output);
+    PG_RETURN_CSTRING(output);
+    pfree(output);
+}
+
+PG_FUNCTION_INFO_V1(getRef);
+Datum getRef(PG_FUNCTION_ARGS){
+    postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
+    char * output = palloc(50*sizeof(char));
+    char delim[] = "#";
+
+    output = strtok(url->raw, delim); //
+    output = strtok(NULL, delim);
+    if (output == NULL) {
+        ereport(ERROR,
+            (
+             errmsg("no reference in the url")
+            )
+        );
+    }
+    else{
+        printf("%s", output);
+    }
+
+    PG_RETURN_CSTRING(output);
+    pfree(output);
+}
+
+PG_FUNCTION_INFO_V1(getUserInfo);
+Datum getUserInfo(PG_FUNCTION_ARGS){
+// static char* getUserInfo(postgrurl *url){
     return 'not implemented yet';
 }
 
-static char* getHost(postgrurl *url){
-    return 'not implemented yet';
-}
-
-static char* getPath(postgrurl *url){
-    return 'not implemented yet';
-}
-
-static int getPort(postgrurl *url){
-    return 0;
-}
-
-static char* getProtocol(postgrurl *url){
-    return 'not implemented yet';
-}
-
-static char* getQuery(postgrurl *url){
-    return 'not implemented yet';
-}
-
-static char* getRef(postgrurl *url){
-    return 'not implemented yet';
-}
-
-static char* getUserInfo(postgrurl *url){
-    return 'not implemented yet';
-}
-
-static bool sameFile(postgrurl *url1, postgrurl *url2){
+PG_FUNCTION_INFO_V1(sameFile);
+Datum sameFile(PG_FUNCTION_ARGS){
+// static bool sameFile(postgrurl *url1, postgrurl *url2){
     return false;
 }
 
-static bool sameHost(postgrurl *url1, postgrurl *url2){
+PG_FUNCTION_INFO_V1(sameHost);
+Datum sameHost(PG_FUNCTION_ARGS){
+// static bool sameHost(postgrurl *url1, postgrurl *url2){
     return false;
 }
 
-static char* toString(postgrurl *url1){
+PG_FUNCTION_INFO_V1(toString);
+Datum toString(PG_FUNCTION_ARGS){
+// static char* toString(postgrurl *url1){
     return 'not implemented yet';
 }
