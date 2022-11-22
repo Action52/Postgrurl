@@ -281,6 +281,9 @@ Datum getPort(PG_FUNCTION_ARGS);
 Datum getProtocol(PG_FUNCTION_ARGS);
 Datum getQuery(PG_FUNCTION_ARGS);
 Datum getRef(PG_FUNCTION_ARGS);
+Datum sameFile(PG_FUNCTION_ARGS);
+Datum sameHost(PG_FUNCTION_ARGS);
+Datum toString(PG_FUNCTION_ARGS);
 
 /*
 Postgres type functions definition
@@ -527,18 +530,36 @@ Datum getUserInfo(PG_FUNCTION_ARGS){
 
 PG_FUNCTION_INFO_V1(sameFile);
 Datum sameFile(PG_FUNCTION_ARGS){
-// static bool sameFile(postgrurl *url1, postgrurl *url2){
-    return false;
+    postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
+    postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
+    if(url1->file != NULL && url2->file != NULL){
+        int eq = strcmp(url1->file, url2->file);
+        if(eq==0){
+            PG_RETURN_BOOL(true);
+        }
+        PG_RETURN_BOOL(false);
+    }
+    PG_RETURN_BOOL(false);
 }
 
 PG_FUNCTION_INFO_V1(sameHost);
 Datum sameHost(PG_FUNCTION_ARGS){
-// static bool sameHost(postgrurl *url1, postgrurl *url2){
-    return false;
+    postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
+    postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
+    if(url1->host != NULL && url2->host != NULL){
+        int eq = strcmp(url1->file, url2->file);
+        if(eq==0){
+            PG_RETURN_BOOL(true);
+        }
+        PG_RETURN_BOOL(false);
+    }
+    PG_RETURN_BOOL(false);
 }
 
 PG_FUNCTION_INFO_V1(toString);
 Datum toString(PG_FUNCTION_ARGS){
-// static char* toString(postgrurl *url1){
-    return 'not implemented yet';
+    postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
+    char *output = url_to_string(url);
+    output = psprintf("%s", output);
+    PG_RETURN_CSTRING(output);
 }

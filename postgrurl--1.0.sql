@@ -78,3 +78,18 @@ CREATE OR REPLACE FUNCTION getRef(postgrurl)
 RETURNS cstring
 AS '$libdir/postgrurl', 'getRef'
 LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION sameFile(postgrurl, postgrurl)
+RETURNS BOOLEAN
+AS '$libdir/postgrurl', 'sameFile'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION sameHost(postgrurl, postgrurl)
+RETURNS BOOLEAN
+AS '$libdir/postgrurl', 'sameHost'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION toString(postgrurl)
+RETURNS cstring
+AS '$libdir/postgrurl', 'toString'
+LANGUAGE C IMMUTABLE STRICT;
