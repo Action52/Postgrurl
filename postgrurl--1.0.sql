@@ -48,3 +48,33 @@ CREATE OR REPLACE FUNCTION postgrurl_lte(postgrurl, postgrurl)
 RETURNS BOOLEAN
 AS '$libdir/postgrurl', 'less_than_equals'
 LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION getFile(postgrurl)
+RETURNS cstring
+AS '$libdir/postgrurl', 'getFile'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION getHost(postgrurl)
+RETURNS cstring
+AS '$libdir/postgrurl', 'getHost'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION getPort(postgrurl)
+RETURNS int
+AS '$libdir/postgrurl', 'getPort'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION getProtocol(postgrurl)
+RETURNS cstring
+AS '$libdir/postgrurl', 'getProtocol'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION getQuery(postgrurl)
+RETURNS cstring
+AS '$libdir/postgrurl', 'getQuery'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION getRef(postgrurl)
+RETURNS cstring
+AS '$libdir/postgrurl', 'getRef'
+LANGUAGE C IMMUTABLE STRICT;
