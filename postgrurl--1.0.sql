@@ -19,10 +19,25 @@ CREATE TYPE postgrurl(
     OUTPUT          =   url_out,
 --    RECEIVE     =   url_rcv,
 --    SEND        =   url_send,
-    INTERNALLENGTH  =   306
+    INTERNALLENGTH  =   1024
 );
 
 COMMENT ON TYPE postgrurl IS 'Type to handle URL strings. Implements useful functions that mimic java.net.URL class.';
+
+--Constructors
+CREATE FUNCTION URL(cstring)
+ RETURNS postgrurl
+ AS 'MODULE_PATHNAME', 'URL_constructor_str'
+ LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+CREATE FUNCTION URL(cstring,cstring,integer,cstring)
+ RETURNS postgrurl
+ AS 'MODULE_PATHNAME', 'URL_constructor1'
+ LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+CREATE FUNCTION URL(cstring,cstring,cstring)
+ RETURNS postgrurl
+ AS 'MODULE_PATHNAME', 'URL_constructor2'
+ LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+--------------------------------------------
 
 CREATE OR REPLACE FUNCTION postgrurl_eq(postgrurl, postgrurl)
 RETURNS BOOLEAN
