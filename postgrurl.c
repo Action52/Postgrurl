@@ -74,14 +74,17 @@ int assignDefaultPort(const char *protocol){
 
 //Constructor with protocol, host, port, file
 postgrurl* new_URL1(char* protocol, char* host, int port, char* file) {
-    char raw[1000];
 	   postgrurl* url = palloc(sizeof(postgrurl));
+     char *raw = malloc(sizeof(char) * ((strlen(protocol)+strlen(host)+strlen(file)) +6));
+
      url->scheme = strdup(protocol);
      url->host = strdup(host);
 	   url->file = strdup(file);
 	   url->port = port;
 
-    snprintf(raw, sizeof(raw), "%s://%s:%d%s", protocol, host,port,file);
+     url->query = NULL;
+
+    snprintf(raw, sizeof(raw), "%s://%s:%d/%s", protocol, host,port,file);
     url->raw = strdup(raw);
 
     return url;
@@ -89,14 +92,17 @@ postgrurl* new_URL1(char* protocol, char* host, int port, char* file) {
 
 //Constructor with protocol, host,file
 postgrurl* new_URL2(char* protocol, char* host,char* file) {
-    char raw[1000];
     postgrurl* url = palloc(sizeof(postgrurl));
+    char *raw = malloc(sizeof(char) * ((strlen(protocol)+strlen(host)+strlen(file)) +6));
     url->scheme = strdup(protocol);
     url->host = strdup(host);
 	  url->file = strdup(file);
     url->defaultPort = assignDefaultPort(protocol);
 
-    snprintf(raw, sizeof(raw), "%s://%s%s", protocol, host, file);
+    url->query = NULL;
+    url->port = 0;
+
+    snprintf(raw, sizeof(raw), "%s://%s/%s", protocol, host, file);
     url->raw = strdup(raw);
 
     return url;
@@ -390,6 +396,9 @@ postgrurl* string_to_url(char* str){
 //Functions
 Datum url_in(PG_FUNCTION_ARGS);
 Datum url_out(PG_FUNCTION_ARGS);
+Datum URL_constructor_str(PG_FUNCTION_ARGS);
+Datum URL_constructor1(PG_FUNCTION_ARGS);
+Datum URL_constructor2(PG_FUNCTION_ARGS);
 Datum url_rcv(PG_FUNCTION_ARGS);
 Datum url_send(PG_FUNCTION_ARGS);
 Datum equals(PG_FUNCTION_ARGS);
@@ -418,6 +427,42 @@ Datum url_out(PG_FUNCTION_ARGS){
     char *output = url_to_string(url);
     output = psprintf("%s", output);
     PG_RETURN_CSTRING(output);
+}
+
+PG_FUNCTION_INFO_V1(URL_constructor_str);
+Datum URL_constructor_str(PG_FUNCTION_ARGS){
+  postgrurl *url;
+  char *rawstr = PG_GETARG_CSTRING(0);
+  url = (postgrurl *) palloc(sizeof(postgrurl));
+  url = string_to_url(rawstr);
+
+  PG_RETURN_POINTER(url);
+}
+
+PG_FUNCTION_INFO_V1(URL_constructor1);
+Datum URL_constructor1(PG_FUNCTION_ARGS){
+  postgrurl *url;
+  char *protocol = PG_GETARG_CSTRING(0);
+  char *host = PG_GETARG_CSTRING(1);
+  int port = PG_GETARG_INT32(2);
+  char *file = PG_GETARG_CSTRING(3);
+
+  url = (postgrurl *) palloc(sizeof(postgrurl));
+  url = new_URL1(protocol,host,port,file);
+  PG_RETURN_POINTER(url);
+}
+
+
+PG_FUNCTION_INFO_V1(URL_constructor2);
+Datum URL_constructor2(PG_FUNCTION_ARGS){
+  postgrurl *url;
+  char *protocol = PG_GETARG_CSTRING(0);
+  char *host = PG_GETARG_CSTRING(1);
+  char *file = PG_GETARG_CSTRING(2);
+
+  url = (postgrurl *) palloc(sizeof(postgrurl));
+  url = new_URL2(protocol,host,file);
+  PG_RETURN_POINTER(url);
 }
 
 //TODO: Implement function
