@@ -392,6 +392,69 @@ postgrurl* string_to_url(char* str){
 
 }
 
+// Constructor with URL and spec
+postgrurl* URLFromContextAndSpec(postgrurl* context, char* spec) {
+    postgrurl* spec_url;
+    
+    // Convert spec to URL
+    spec_url = string_to_url(spec);
+
+    //Check whether spec contains scheme or not
+    int index;
+
+    char delimiter[] = "://";
+    char *pos = strstr(spec, delimiter);
+    index = pos ? pos - spec : -1;
+    if (index != -1 || index > 0) {
+        // Spec is Absolute URL
+        if(strcmp(spec_url->scheme, context->scheme) != 0 || spec_url->host != NULL) {
+            return spec_url;
+        }
+
+        return context;
+    }
+
+    // Case spec is an absolute path
+    if((strlen(spec) > 0 && strcmp(spec[0], "/") == 0) || (strlen(context->raw) > 0 
+        && strcmp(context->raw[strlen(context->raw)-1], "/") != 0)) {
+        char *raw;
+        raw = malloc(1024*sizeof(char));
+        strcpy(raw,"");
+
+        if (context->scheme != NULL) {
+            strcat(raw, context->scheme);
+            strcat(raw, "://");
+        }
+
+        if (context->host != NULL) {
+		    strcat(raw, context->host);
+        }
+
+        if(context->port != NULL) {
+            strcat(raw, ":");
+            strcat(raw. context->port);
+        }
+
+        if(spec_url->file != NULL) {
+            strcpy(context->file, spec_url->file);
+            strcat(raw, spec_url->file);
+        }
+
+        if(spec_url->query != NULL) {
+            strcpy(context->query, spec_url->query);
+            strcat(raw, spec_url->query);
+        }
+
+        context->raw = palloc(strlen(raw) + 1);
+        strcpy(context->raw, raw);
+        free(raw);
+    }
+
+    return context;
+
+    // TODO: handle "." or ".."
+}
+
 
 //Functions
 Datum url_in(PG_FUNCTION_ARGS);
@@ -399,6 +462,7 @@ Datum url_out(PG_FUNCTION_ARGS);
 Datum URL_constructor_str(PG_FUNCTION_ARGS);
 Datum URL_constructor1(PG_FUNCTION_ARGS);
 Datum URL_constructor2(PG_FUNCTION_ARGS);
+Datum URL_constructor5(PG_FUNCTION_ARGS);
 Datum url_rcv(PG_FUNCTION_ARGS);
 Datum url_send(PG_FUNCTION_ARGS);
 Datum equals(PG_FUNCTION_ARGS);
@@ -472,6 +536,17 @@ Datum URL_constructor2(PG_FUNCTION_ARGS){
   url = (postgrurl *) palloc(sizeof(postgrurl));
   url = new_URL2(protocol,host,file);
   PG_RETURN_POINTER(url);
+}
+
+PG_FUNCTION_INFO_V1(URL_constructor5);
+Datum URL_constructor5(PG_FUNCTION_ARGS) {
+    postgrurl *url;
+    postgrurl *context = (postgrurl *) PG_GETARG_POINTER(0);
+    char *spec = PG_GETARG_CSTRING(1);
+
+    url = (postgrurl *) palloc(sizeof(postgrurl));
+    url = URLFromContextAndSpec(context, spec);
+    PG_RETURN_POINTER(url);
 }
 
 //TODO: Implement function
