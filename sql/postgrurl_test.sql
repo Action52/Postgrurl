@@ -5,7 +5,7 @@ INSERT INTO testurl(id, purl) VALUES(2, 'http://test.com');
 INSERT INTO testurl(id, purl) VALUES(3, 'http://test.com/file.txt');
 INSERT INTO testurl(id, purl) VALUES(4, 'http://test.com/random/path/');
 INSERT INTO testurl(id, purl) VALUES(5, 'http://test.com:8162');
-INSERT INTO testurl(id, purl) VALUES(6, 'http://test.com:8239/hola?query=6');
+--INSERT INTO testurl(id, purl) VALUES(6, 'http://test.com:8239/hola?query=6');
 
 
 SELECT * FROM testurl;
@@ -27,4 +27,18 @@ SELECT postgrurl_lte('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
 SELECT postgrurl_lte('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
 SELECT postgrurl_lte('eacebook.com'::postgrurl, 'facebook.com'::postgrurl);
 
+SELECT 'eacebook.com'::postgrurl = 'facebook.com'::postgrurl;
+SELECT 'eacebook.com'::postgrurl <> 'facebook.com'::postgrurl;
+
+SELECT 'eacebook.com'::postgrurl < 'facebook.com'::postgrurl;
+SELECT 'eacebook.com'::postgrurl > 'facebook.com'::postgrurl;
+
+SELECT 'eacebook.com'::postgrurl <= 'facebook.com'::postgrurl;
+SELECT 'eacebook.com'::postgrurl >= 'facebook.com'::postgrurl;
+
+CREATE INDEX postgrurl_idx ON testurl USING BTREE(purl);
+
+EXPLAIN SELECT * FROM testurl ORDER BY purl;
+
+DROP INDEX IF EXISTS postgrurl_idx;
 DROP TABLE testurl;

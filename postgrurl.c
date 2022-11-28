@@ -274,6 +274,8 @@ Datum greater_than(PG_FUNCTION_ARGS);
 Datum less_than(PG_FUNCTION_ARGS);
 Datum greater_than_equals(PG_FUNCTION_ARGS);
 Datum less_than_equals(PG_FUNCTION_ARGS);
+Datum cmp(PG_FUNCTION_ARGS);
+Datum not_equals(PG_FUNCTION_ARGS);
 Datum getAuthority(PG_FUNCTION_ARGS);
 
 /*
@@ -369,7 +371,28 @@ Datum less_than_equals(PG_FUNCTION_ARGS){
     PG_RETURN_BOOL(false);
 }
 
- PG_FUNCTION_INFO_V1(getAuthority);
+PG_FUNCTION_INFO_V1(cmp);
+Datum cmp(PG_FUNCTION_ARGS){
+    postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
+    postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
+    int eq = strcmp(url1->raw, url2->raw);
+    if(eq==0){PG_RETURN_INT32(0);}
+    else if(eq<0){PG_RETURN_INT32(-1);}
+    else{PG_RETURN_INT32(1);}
+}
+
+PG_FUNCTION_INFO_V1(not_equals);
+Datum not_equals(PG_FUNCTION_ARGS){
+    postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
+    postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
+    int eq = strcmp(url1->raw, url2->raw);
+    if(eq==0){
+        PG_RETURN_BOOL(false);
+    }
+    PG_RETURN_BOOL(true);
+}
+
+PG_FUNCTION_INFO_V1(getAuthority);
 Datum getAuthority(PG_FUNCTION_ARGS){
     char *rawurl = (postgrurl *) PG_GETARG_CSTRING(0);
     postgrurl *url;
@@ -421,6 +444,7 @@ static bool sameHost(postgrurl *url1, postgrurl *url2){
     return false;
 }
 
+//This equals url_to_string
 static char* toString(postgrurl *url1){
     return 'not implemented yet';
 }
