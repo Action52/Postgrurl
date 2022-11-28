@@ -11,8 +11,10 @@ INSERT INTO testurl(id, purl) VALUES(6, 'http://test.com:8239/hola?query=6');
 SELECT * FROM testurl;
 
 SELECT URL('http://test.com/hola?query=6'::postgrurl, 'http://test.com/hola');
-SELECT URL('http://test.com/hola?query=6'::postgrurl, '/hola');
-SELECT URL('http://test.com/hola/'::postgrurl, 'hola');
+SELECT URL('http://test.com/hola?query=6'::postgrurl, '/halamadrid');
+SELECT URL('http://test.com/hola/hahahaha'::postgrurl, 'hola');
+SELECT URL('http://test.com/hola?query=6'::postgrurl, 'halamadrid');
+
 
 SELECT postgrurl_eq('12345'::postgrurl, '123456'::postgrurl);
 SELECT postgrurl_eq('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
