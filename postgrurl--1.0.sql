@@ -19,10 +19,25 @@ CREATE TYPE postgrurl(
     OUTPUT          =   url_out,
 --    RECEIVE     =   url_rcv,
 --    SEND        =   url_send,
-    INTERNALLENGTH  =   306
+    INTERNALLENGTH  =   1024
 );
 
 COMMENT ON TYPE postgrurl IS 'Type to handle URL strings. Implements useful functions that mimic java.net.URL class.';
+
+--Constructors
+CREATE FUNCTION URL(cstring)
+ RETURNS postgrurl
+ AS 'MODULE_PATHNAME', 'URL_constructor_str'
+ LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+CREATE FUNCTION URL(cstring,cstring,integer,cstring)
+ RETURNS postgrurl
+ AS 'MODULE_PATHNAME', 'URL_constructor1'
+ LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+CREATE FUNCTION URL(cstring,cstring,cstring)
+ RETURNS postgrurl
+ AS 'MODULE_PATHNAME', 'URL_constructor2'
+ LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+--------------------------------------------
 
 CREATE OR REPLACE FUNCTION postgrurl_eq(postgrurl, postgrurl)
 RETURNS BOOLEAN
@@ -136,3 +151,47 @@ AS
     OPERATOR    4   >=,
     OPERATOR    5   >,
     FUNCTION    1   postgrurl_cmp(postgrurl, postgrurl);
+CREATE OR REPLACE FUNCTION getFile(postgrurl)
+RETURNS cstring
+AS '$libdir/postgrurl', 'getFile'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION getHost(postgrurl)
+RETURNS cstring
+AS '$libdir/postgrurl', 'getHost'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION getPort(postgrurl)
+RETURNS int
+AS '$libdir/postgrurl', 'getPort'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION getProtocol(postgrurl)
+RETURNS cstring
+AS '$libdir/postgrurl', 'getProtocol'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION getQuery(postgrurl)
+RETURNS cstring
+AS '$libdir/postgrurl', 'getQuery'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION getRef(postgrurl)
+RETURNS cstring
+AS '$libdir/postgrurl', 'getRef'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION sameFile(postgrurl, postgrurl)
+RETURNS BOOLEAN
+AS '$libdir/postgrurl', 'sameFile'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION sameHost(postgrurl, postgrurl)
+RETURNS BOOLEAN
+AS '$libdir/postgrurl', 'sameHost'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION toString(postgrurl)
+RETURNS cstring
+AS '$libdir/postgrurl', 'toString'
+LANGUAGE C IMMUTABLE STRICT;
