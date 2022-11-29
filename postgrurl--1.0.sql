@@ -37,6 +37,10 @@ CREATE FUNCTION URL(cstring,cstring,cstring)
  RETURNS postgrurl
  AS 'MODULE_PATHNAME', 'URL_constructor2'
  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+CREATE FUNCTION URL(postgrurl,cstring)
+ RETURNS postgrurl
+ AS 'MODULE_PATHNAME', 'URL_constructor5'
+ LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 --------------------------------------------
 
 CREATE OR REPLACE FUNCTION postgrurl_eq(postgrurl, postgrurl)

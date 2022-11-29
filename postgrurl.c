@@ -392,6 +392,138 @@ postgrurl* string_to_url(char* str){
 
 }
 
+// Constructor with URL and spec
+postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
+    //Check whether spec contains scheme or not
+    int index;
+    char delimiter[] = "://";
+    char *pos = strstr(spec, delimiter);
+    index = pos ? pos - spec : -1;
+    if (index != -1 || index > 0) {
+        
+        // Convert spec to URL
+        postgrurl* spec_url;
+        spec_url = string_to_url(spec);
+
+        // Spec is Absolute URL
+        if(strcmp(spec_url->scheme, context->scheme) != 0 || spec_url->host != NULL) {
+            return spec_url;
+        }
+
+        return context;
+    }
+
+    // Case spec is path
+    // Get file and query from spec
+    char * query_split = palloc((strlen(spec) + 1 )* sizeof(char));
+    char * file = palloc((strlen(spec) + 1 ) * sizeof(char));
+    char * query = palloc((strlen(spec) + 1 ) *sizeof(char));
+    
+    if(strstr(spec,"?") != NULL) {
+        query_split = strtok(spec, "?");
+        strcpy(file, query_split);    char * raw = palloc(1024 * sizeof(char));
+    strcpy(raw, "");
+
+
+        query_split = strtok(NULL, "?");
+        strcpy(query, "?");
+        strcpy(query+strlen(query), query_split);
+    } else {
+        strcpy(file, spec);
+
+        // Empty query
+        strcpy(query,"");
+    }
+
+    // Append if spec is not absoulte path otherwise overwrite context path
+    if (spec[0] != '/') {
+        char * new_file = strdup(context->file);
+
+        // Determine which part of the file need to be replaced
+        char * last;
+        int index;
+        int ignore_last;
+
+        last = strrchr(new_file, '/');
+        index = last ? last - new_file : -1;
+        ignore_last = index == strlen(new_file)-1 ? 0 : 1;
+
+        char delim[] = "/";
+        char ** file_part  = NULL;
+        char *  ptr    = strtok (new_file, delim);
+        int n_spaces = 0;
+
+        // Split string token into array, taken from: 
+        // https://stackoverflow.com/questions/11198604/c-split-string-into-an-array-of-strings
+        while (ptr) {
+            file_part = realloc (file_part, sizeof (char*) * ++n_spaces);
+
+            if (file_part == NULL)
+                exit (-1); /* memory allocation failed */
+
+            file_part[n_spaces-1] = ptr;
+            ptr = strtok (NULL, delim);
+
+            if(!ptr && ignore_last) {
+                file_part[n_spaces-1] = 0;
+            }
+        }
+
+        // Add null
+        file_part = realloc (file_part, sizeof (char*) * (n_spaces+1));
+        file_part[n_spaces] = 0;
+
+        // Combine file and new path
+        char * combined_file = palloc(1024*sizeof(char));
+        strcpy(combined_file, "");
+        
+        for (int i = 0; i < (n_spaces+1); ++i) {
+            if (file_part[i]) {
+                strcat(combined_file, "/");
+                strcpy(combined_file+strlen(combined_file), file_part[i]);
+            }
+        }
+
+        // Combine path with file
+        strcat(combined_file, "/");
+        strcat(combined_file, file);
+        file = strdup(combined_file);
+
+        free(file_part);
+    }
+
+    // Transform new raw value
+    char * raw = palloc(1024 * sizeof(char));
+    strcpy(raw, "");
+
+    if (context->scheme) {
+        strcat(raw, context->scheme);
+        strcat(raw, "://");
+    }
+
+    if (context->host) {
+        strcat(raw, context->host);
+    }
+
+    if(context->port) {
+        strcat(raw, ":");
+        strcat(raw, context->port);
+    }
+
+    if(file) {
+        context->file = strdup(file);
+        strcat(raw, file);
+    }
+
+    if(query) {
+        context->query = strdup(query);
+        strcat(raw, query);
+    }
+    context->raw = strdup(raw);
+    
+    return context;
+}
+
 
 //Functions
 Datum url_in(PG_FUNCTION_ARGS);
@@ -399,6 +531,7 @@ Datum url_out(PG_FUNCTION_ARGS);
 Datum URL_constructor_str(PG_FUNCTION_ARGS);
 Datum URL_constructor1(PG_FUNCTION_ARGS);
 Datum URL_constructor2(PG_FUNCTION_ARGS);
+Datum URL_constructor5(PG_FUNCTION_ARGS);
 Datum url_rcv(PG_FUNCTION_ARGS);
 Datum url_send(PG_FUNCTION_ARGS);
 Datum equals(PG_FUNCTION_ARGS);
@@ -472,6 +605,17 @@ Datum URL_constructor2(PG_FUNCTION_ARGS){
   url = (postgrurl *) palloc(sizeof(postgrurl));
   url = new_URL2(protocol,host,file);
   PG_RETURN_POINTER(url);
+}
+
+PG_FUNCTION_INFO_V1(URL_constructor5);
+Datum URL_constructor5(PG_FUNCTION_ARGS) {
+    postgrurl *url;
+    postgrurl *context = (postgrurl *) PG_GETARG_POINTER(0);
+    char *spec = PG_GETARG_CSTRING(1);
+
+    url = (postgrurl *) palloc(sizeof(postgrurl));
+    url = URLFromContextAndSpec(context, spec);
+    PG_RETURN_POINTER(url);
 }
 
 //TODO: Implement function
