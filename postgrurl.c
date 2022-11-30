@@ -178,12 +178,14 @@ postgrurl* string_to_url(char* str){
 	int with_port;
 	int with_file;
 	int with_query;
+  int end_slash=0;
 
 
 	//memory allocation
 	scheme = malloc(sizeof(char) * (strlen(str)+1));
 	strcpy(scheme,"");
 	host = malloc(sizeof(char) * (strlen(str)+1));
+  strcpy(host,"");
 	file = malloc(sizeof(char) * (strlen(str)+1));
 	strcpy(file,"");
 	query = malloc(sizeof(char) * (strlen(str)+1));
@@ -211,6 +213,14 @@ postgrurl* string_to_url(char* str){
 		with_query = strstr(str,"?");
 	}
 
+  //check if file part ends with /
+	if(with_file != NULL){
+		strcpy(file+strlen(file),"/");
+		if(strstr(str,"/?")!= NULL || str[strlen(str)-1]=='/'){
+			end_slash = 1;
+		}
+	}
+
 	char *ptr = strtok(str, delim);
 
   //split the URL string into its individual components
@@ -228,7 +238,19 @@ postgrurl* string_to_url(char* str){
 				}else
 				{
 					// host...
-					strcpy(host,value);
+          if(strstr(value,"?") != NULL){
+            //host?query
+            query_split = strtok(value, "?");
+            strcpy(host+strlen(host), query_split);
+
+            query_split = strtok(NULL, "?");
+            strcpy(query+strlen(query),"?");
+            strcpy(query+strlen(query), query_split);
+
+          }else{
+            // host...
+            strcpy(host+strlen(host),value);
+          }
 				}
 				break;
 
@@ -237,30 +259,61 @@ postgrurl* string_to_url(char* str){
         //can be port,query or file
 				if(with_protocol != NULL)
 				{
-					// https://host
-					strcpy(host,value);
-				}else
-				{
-					if(with_port!=NULL)
-					{ //add check for valid port
-						// host:port
-						port = atoi(value);
-            strcpy(string_port,value);
-
-					}else if(strstr(value,"?") != NULL)
-					{// host/file?query
-
+          if(strstr(value,"?") != NULL){
+						// https://host?query
 						query_split = strtok(value, "?");
-						strcpy(file+strlen(file),"/");
-						strcpy(file+strlen(file), query_split);
+						strcpy(host+strlen(host), query_split);
 
 						query_split = strtok(NULL, "?");
 						strcpy(query+strlen(query),"?");
 						strcpy(query+strlen(query), query_split);
+					}else{
+						// https://host
+						strcpy(host+strlen(host),value);
+          }
+
+				}else
+				{
+					if(with_port!=NULL)
+					{ //add check for valid port
+            if(strstr(value,"?") != NULL){
+							// host:port?query
+							query_split = strtok(value, "?");
+							port = atoi(query_split);
+              strcpy(string_port,query_split);
+
+							query_split = strtok(NULL, "?");
+							strcpy(query+strlen(query),"?");
+							strcpy(query+strlen(query), query_split);
+
+						} else{
+							// host:port
+							port = atoi(value);
+              strcpy(string_port,value);
+						}
+
+					}else if(strstr(value,"?") != NULL)
+					{// host/file?query
+
+            if(value[0]=='?'){
+							// host/file/?query
+							strcpy(query+strlen(query),value);
+
+						} else {
+							// host/file?query
+							query_split = strtok(value, "?");
+							strcpy(file+strlen(file), query_split);
+							strcpy(file+strlen(file),"/");
+
+							query_split = strtok(NULL, "?");
+							strcpy(query+strlen(query),"?");
+							strcpy(query+strlen(query), query_split);
+
+						}
 					}else
 					{	// host/file
+            strcpy(file+strlen(file), value);
 						strcpy(file+strlen(file),"/");
-						strcpy(file+strlen(file), value);
 					}
 				}
 				break;
@@ -273,23 +326,42 @@ postgrurl* string_to_url(char* str){
 					if(with_port!=NULL)
 					{	// protocol://host:port
 						//Valid port check
-						port = atoi(value);
-            strcpy(string_port,value);
+            if(strstr(value,"?") != NULL){
+							// protocol://host:port
+							query_split = strtok(value, "?");
+							port = atoi(query_split);
+              strcpy(string_port,query_split);
+
+							query_split = strtok(NULL, "?");
+							strcpy(query+strlen(query),"?");
+							strcpy(query+strlen(query), query_split);
+
+						}else{
+							// host:port?query
+              port = atoi(value);
+              strcpy(string_port,value);
+
+						}
 					}else if(strstr(value,"?") != NULL)
 					{
-						// protocol://host/file?query
-						query_split = strtok(value, "?");
-						strcpy(file+strlen(file),"/");
-						strcpy(file+strlen(file), query_split);
+            if(value[0]=='?'){
+							// protocol://host/file/?query
+							strcpy(query+strlen(query),value);
+						}else{
+							// protocol://host/file?query
+							query_split = strtok(value, "?");
+							strcpy(file+strlen(file), query_split);
+							strcpy(file+strlen(file),"/");
 
-						query_split = strtok(NULL, "?");
-						strcpy(query+strlen(query),"?");
-						strcpy(query+strlen(query), query_split);
+							query_split = strtok(NULL, "?");
+							strcpy(query+strlen(query),"?");
+							strcpy(query+strlen(query), query_split);
+						}
 
 					}else
 					{	// protocol://host/file
+            strcpy(file+strlen(file), value);
 						strcpy(file+strlen(file),"/");
-						strcpy(file+strlen(file), value);
 					}
 					break;
 				}
@@ -301,23 +373,39 @@ postgrurl* string_to_url(char* str){
         if(strstr(value,"?") != NULL)
 				{	// portocol://host:port/file?query
 
-					query_split = strtok(value, "?");
-					strcpy(file+strlen(file),"/");
-					strcpy(file+strlen(file), query_split);
-					query_split = strtok(NULL, "?");
-					strcpy(query+strlen(query),"?");
-					strcpy(query+strlen(query), query_split);
-				}else
-        {
+          if(value[0]=='?'){
+						// portocol://host:port/file/?query
+						strcpy(query+strlen(query),value);
+
+					}else{
+						// portocol://host:port/file?query
+						printf("Value: %s \n", value);
+						query_split = strtok(value, "?");
+
+						strcpy(file+strlen(file), query_split);
+						strcpy(file+strlen(file),"/");
+
+						query_split = strtok(NULL, "?");
+						strcpy(query+strlen(query),"?");
+						printf("Bis hier %s \n",query_split);
+						strcpy(query+strlen(query), query_split);
+					}
+
+				}else{
 					// portocol://host:port/file
-					strcpy(file+strlen(file),"/");
 					strcpy(file+strlen(file), value);
+					strcpy(file+strlen(file),"/");
 				}
 				break;
 		}
 		ptr = strtok(NULL, delim);
 		ind++;
 	}
+
+  //if neccesary remove last slash
+  if(end_slash == 0){
+    file[strlen(file)-1] = '\0';
+  }
 
   //Assign the components that were present in the URL string to URL struct
   // and create the raw string
@@ -400,7 +488,7 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
     char *pos = strstr(spec, delimiter);
     index = pos ? pos - spec : -1;
     if (index != -1 || index > 0) {
-        
+
         // Convert spec to URL
         postgrurl* spec_url;
         spec_url = string_to_url(spec);
@@ -418,10 +506,11 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
     char * query_split = palloc((strlen(spec) + 1 )* sizeof(char));
     char * file = palloc((strlen(spec) + 1 ) * sizeof(char));
     char * query = palloc((strlen(spec) + 1 ) *sizeof(char));
-    
+
     if(strstr(spec,"?") != NULL) {
         query_split = strtok(spec, "?");
-        strcpy(file, query_split);    char * raw = palloc(1024 * sizeof(char));
+        strcpy(file, query_split);
+        char * raw = palloc(1024 * sizeof(char));
     strcpy(raw, "");
 
 
@@ -453,7 +542,7 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
         char *  ptr    = strtok (new_file, delim);
         int n_spaces = 0;
 
-        // Split string token into array, taken from: 
+        // Split string token into array, taken from:
         // https://stackoverflow.com/questions/11198604/c-split-string-into-an-array-of-strings
         while (ptr) {
             file_part = realloc (file_part, sizeof (char*) * ++n_spaces);
@@ -476,7 +565,7 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
         // Combine file and new path
         char * combined_file = palloc(1024*sizeof(char));
         strcpy(combined_file, "");
-        
+
         for (int i = 0; i < (n_spaces+1); ++i) {
             if (file_part[i]) {
                 strcat(combined_file, "/");
@@ -520,7 +609,7 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
         strcat(raw, query);
     }
     context->raw = strdup(raw);
-    
+
     return context;
 }
 
@@ -710,7 +799,7 @@ PG_FUNCTION_INFO_V1(getFile);
 Datum getFile(PG_FUNCTION_ARGS){
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
     char * output = palloc(50*sizeof(char));
-    
+
     if(url->file != NULL){
         strcat(output, url->file);
     }
@@ -725,7 +814,7 @@ Datum getFile(PG_FUNCTION_ARGS){
     PG_RETURN_CSTRING(output);
     pfree(output);
 }
-    
+
 PG_FUNCTION_INFO_V1(getHost);
 Datum getHost(PG_FUNCTION_ARGS){
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
