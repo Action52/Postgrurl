@@ -801,7 +801,7 @@ Datum getFile(PG_FUNCTION_ARGS){
     char * output = palloc(50*sizeof(char));
 
     if(url->file != NULL){
-        strcat(output, url->file);
+        strcpy(output, url->file);
     }
     else{
         ereport(ERROR,
@@ -821,7 +821,7 @@ Datum getHost(PG_FUNCTION_ARGS){
     char * output = palloc(50*sizeof(char));
 
     if(url->file != NULL){
-        strcat(output, url->host);
+        strcpy(output, url->host);
     }
     else{
         ereport(ERROR,
@@ -868,7 +868,7 @@ Datum getProtocol(PG_FUNCTION_ARGS){
     char * output = palloc(50*sizeof(char));
 
     if(url->scheme != NULL){
-        strcat(output, url->scheme);
+        strcpy(output, url->scheme);
     }
     else{
         ereport(ERROR,
@@ -888,7 +888,7 @@ Datum getQuery(PG_FUNCTION_ARGS){
     char * output = palloc(50*sizeof(char));
 
     if(url->query != NULL){
-        strcat(output, url->query);
+        strcpy(output, url->query);
     }
     else{
         ereport(ERROR,
