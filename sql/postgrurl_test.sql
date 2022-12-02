@@ -33,5 +33,7 @@ SELECT postgrurl_lte('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
 SELECT postgrurl_lte('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
 SELECT postgrurl_lte('eacebook.com'::postgrurl, 'facebook.com'::postgrurl);
 
+SELECT purl, sameFile(purl, 'http://test.com/file.txt'::postgrurl), sameHost(purl, 'http://test.com/file.txt'::postgrurl) from testurl;
+
 DROP TABLE testurl;
 DROP EXTENSION postgrurl;

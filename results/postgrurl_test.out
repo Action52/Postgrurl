@@ -7,7 +7,40 @@ INSERT INTO testurl(id, purl) VALUES(4, 'http://test.com/random/path/');
 INSERT INTO testurl(id, purl) VALUES(5, 'http://test.com:8162');
 INSERT INTO testurl(id, purl) VALUES(6, 'http://test.com:8239/hola?query=6');
 SELECT * FROM testurl;
-ERROR:  function 819260 returned NULL
+ id |                                                     purl                                                      
+----+---------------------------------------------------------------------------------------------------------------
+  1 | raw: test, host: test, defaultPort:196608
+  2 | raw: http://test.com, scheme: http, host: test.com, defaultPort:80
+  3 | raw: http://test.com/file.txt, scheme: http, host: test.com, file: /file.txt, defaultPort:80
+  4 | raw: http://test.com/random/path/, scheme: http, host: test.com, file: /random/path/, defaultPort:80
+  5 | raw: http://test.com:8162, scheme: http, host: test.com, port: 8162
+  6 | raw: http://test.com:8239/hola?query=6, scheme: http, host: test.com, file: /hola, port: 8239, query:?query=6
+(6 rows)
+
+SELECT URL('http://test.com/hola?query=6'::postgrurl, 'http://test.com/hola');
+                                         url                                          
+--------------------------------------------------------------------------------------
+ raw: http://test.com/hola, scheme: http, host: test.com, file: /hola, defaultPort:80
+(1 row)
+
+SELECT URL('http://test.com/hola?query=6'::postgrurl, '/halamadrid');
+                                                   url                                                    
+----------------------------------------------------------------------------------------------------------
+ raw: http://test.com/halamadrid, scheme: http, host: test.com, file: /halamadrid, defaultPort:80, query:
+(1 row)
+
+SELECT URL('http://test.com/hola/hahahaha'::postgrurl, 'hola');
+                                                  url                                                   
+--------------------------------------------------------------------------------------------------------
+ raw: http://test.com/hola/hola, scheme: http, host: test.com, file: /hola/hola, defaultPort:80, query:
+(1 row)
+
+SELECT URL('http://test.com/hola?query=6'::postgrurl, 'halamadrid');
+                                                   url                                                    
+----------------------------------------------------------------------------------------------------------
+ raw: http://test.com/halamadrid, scheme: http, host: test.com, file: /halamadrid, defaultPort:80, query:
+(1 row)
+
 SELECT postgrurl_eq('12345'::postgrurl, '123456'::postgrurl);
  postgrurl_eq 
 --------------
@@ -80,4 +113,16 @@ SELECT postgrurl_lte('eacebook.com'::postgrurl, 'facebook.com'::postgrurl);
  t
 (1 row)
 
+SELECT purl, sameFile(purl, 'http://test.com/file.txt'::postgrurl), sameHost(purl, 'http://test.com/file.txt'::postgrurl) from testurl;
+                                                     purl                                                      | samefile | samehost 
+---------------------------------------------------------------------------------------------------------------+----------+----------
+ raw: test, host: test, defaultPort:196608                                                                     | f        | f
+ raw: http://test.com, scheme: http, host: test.com, defaultPort:80                                            | f        | t
+ raw: http://test.com/file.txt, scheme: http, host: test.com, file: /file.txt, defaultPort:80                  | t        | t
+ raw: http://test.com/random/path/, scheme: http, host: test.com, file: /random/path/, defaultPort:80          | f        | t
+ raw: http://test.com:8162, scheme: http, host: test.com, port: 8162                                           | f        | t
+ raw: http://test.com:8239/hola?query=6, scheme: http, host: test.com, file: /hola, port: 8239, query:?query=6 | f        | t
+(6 rows)
+
 DROP TABLE testurl;
+DROP EXTENSION postgrurl;
