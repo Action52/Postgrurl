@@ -857,7 +857,6 @@ Datum getPort(PG_FUNCTION_ARGS){
             )
         );
     }
-    output = psprintf("%d", output);
     PG_RETURN_INT32(output);
     pfree(output);
 }
