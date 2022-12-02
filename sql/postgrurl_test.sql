@@ -36,6 +36,9 @@ SELECT 'eacebook.com'::postgrurl > 'facebook.com'::postgrurl;
 SELECT 'eacebook.com'::postgrurl <= 'facebook.com'::postgrurl;
 SELECT 'eacebook.com'::postgrurl >= 'facebook.com'::postgrurl;
 
+
+SELECT purl, sameHost(purl, 'test.com/file.txt'), sameFile(purl, 'test.com/file.txt') FROM testurl;
+
 CREATE INDEX postgrurl_idx ON testurl USING BTREE(purl);
 
 EXPLAIN SELECT * FROM testurl ORDER BY purl;

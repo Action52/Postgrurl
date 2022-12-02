@@ -740,7 +740,7 @@ Datum sameHost(PG_FUNCTION_ARGS){
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
     if(url1->host != NULL && url2->host != NULL){
-        int eq = strcmp(url1->file, url2->file);
+        int eq = strcmp(url1->host, url2->host);
         if(eq==0){
             PG_RETURN_BOOL(true);
         }
