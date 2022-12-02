@@ -35,5 +35,22 @@ SELECT postgrurl_lte('eacebook.com'::postgrurl, 'facebook.com'::postgrurl);
 
 SELECT purl, sameFile(purl, 'http://test.com/file.txt'::postgrurl), sameHost(purl, 'http://test.com/file.txt'::postgrurl) from testurl;
 
+SELECT getFile('http://test.com/file.txt'::postgrurl);
+SELECT getHost('http://test.com:8239/hola?query=6'::postgrurl);
+SELECT getPort('http://test.com:8239/hola?query=6'::postgrurl);
+SELECT getProtocol('http://test.com:8239/hola?query=6'::postgrurl);
+SELECT getQuery('http://test.com:8239/hola?query=6'::postgrurl);
+
+SELECT getRef('http://test.com:8239/hola#somewhere'::postgrurl);
+SELECT getRef('http://test.com:8239/hola?query=6'::postgrurl);
+
+SELECT sameFile('http://test.com/file.txt'::postgrurl, 'http://facebook.com/8239/hola/file.txt'::postgrurl);
+SELECT sameFile('http://test.com/file1.txt'::postgrurl, 'http://facebook.com/8239/hola/file.txt'::postgrurl);
+
+SELECT sameHost('http://facebook.com/8239/hola/file.txt'::postgrurl, 'http://acebook.com/8239/hola/file.txt'::postgrurl);
+SELECT sameHost('http://facebook.com/8239/hola/file.txt'::postgrurl, 'https://facebook.com/80/holu/#somewhere'::postgrurl);
+
+SELECT toString('http://test.com'::postgrurl);
+
 DROP TABLE testurl;
 DROP EXTENSION postgrurl;
