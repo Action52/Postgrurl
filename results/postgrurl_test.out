@@ -1,115 +1,248 @@
 CREATE EXTENSION postgrurl;
 CREATE TABLE testurl(id int, purl postgrurl);
+SELECT URL('http', 'test.com', '/about/file.txt');
+                 url                  
+--------------------------------------
+ raw: http://test.com//about/file.txt
+(1 row)
+
+SELECT URL('http', 'test.com', 10, '/about/file.txt');
+                   url                   
+-----------------------------------------
+ raw: http://test.com:10//about/file.txt
+(1 row)
+
 INSERT INTO testurl(id, purl) VALUES(1, 'test');
 INSERT INTO testurl(id, purl) VALUES(2, 'http://test.com');
 INSERT INTO testurl(id, purl) VALUES(3, 'http://test.com/file.txt');
 INSERT INTO testurl(id, purl) VALUES(4, 'http://test.com/random/path/');
 INSERT INTO testurl(id, purl) VALUES(5, 'http://test.com:8162');
+INSERT INTO testurl(id, purl) VALUES(6, URL('http', 'test.com', 10, 'about/file.txt'));
+INSERT INTO testurl(id, purl) VALUES(7, URL('http', 'test.com', 'about/file.txt'));
 --INSERT INTO testurl(id, purl) VALUES(6, 'http://test.com:8239/hola?query=6');
 SELECT * FROM testurl;
- id |                                                     purl                                                      
-----+---------------------------------------------------------------------------------------------------------------
-  1 | raw: test, host: test, defaultPort:196608
-  2 | raw: http://test.com, scheme: http, host: test.com, defaultPort:80
-  3 | raw: http://test.com/file.txt, scheme: http, host: test.com, file: /file.txt, defaultPort:80
-  4 | raw: http://test.com/random/path/, scheme: http, host: test.com, file: /random/path/, defaultPort:80
-  5 | raw: http://test.com:8162, scheme: http, host: test.com, port: 8162
-  6 | raw: http://test.com:8239/hola?query=6, scheme: http, host: test.com, file: /hola, port: 8239, query:?query=6
+ id |                  purl                  
+----+----------------------------------------
+  1 | raw: test
+  2 | raw: http://test.com
+  3 | raw: http://test.com/file.txt
+  4 | raw: http://test.com/random/path/
+  5 | raw: http://test.com:8162
+  6 | raw: http://test.com:10/about/file.txt
+  7 | raw: http://test.com/about/file.txt
+(7 rows)
+
+--SELECT URL('http://test.com/hola?query=6'::postgrurl, 'http://test.com/hola');
+--SELECT URL('http://test.com/hola?query=6'::postgrurl, '/halamadrid');
+--SELECT URL('http://test.com/hola/hahahaha'::postgrurl, 'hola');
+--SELECT URL('http://test.com/hola?query=6'::postgrurl, 'halamadrid');
+SELECT _postgrurl_eq('12345'::postgrurl, '123456'::postgrurl);
+ _postgrurl_eq 
+---------------
+ f
+(1 row)
+
+SELECT _postgrurl_eq('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ _postgrurl_eq 
+---------------
+ t
+(1 row)
+
+SELECT _postgrurl_gt('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ _postgrurl_gt 
+---------------
+ f
+(1 row)
+
+SELECT _postgrurl_gt('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
+ _postgrurl_gt 
+---------------
+ t
+(1 row)
+
+SELECT _postgrurl_gte('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ _postgrurl_gte 
+----------------
+ t
+(1 row)
+
+SELECT _postgrurl_gte('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
+ _postgrurl_gte 
+----------------
+ t
+(1 row)
+
+SELECT _postgrurl_gte('eacebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ _postgrurl_gte 
+----------------
+ f
+(1 row)
+
+SELECT _postgrurl_lt('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ _postgrurl_lt 
+---------------
+ f
+(1 row)
+
+SELECT _postgrurl_lt('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
+ _postgrurl_lt 
+---------------
+ f
+(1 row)
+
+SELECT _postgrurl_lte('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ _postgrurl_lte 
+----------------
+ t
+(1 row)
+
+SELECT _postgrurl_lte('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
+ _postgrurl_lte 
+----------------
+ f
+(1 row)
+
+SELECT _postgrurl_lte('eacebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ _postgrurl_lte 
+----------------
+ t
+(1 row)
+
+SELECT 'eacebook.com'::postgrurl = 'facebook.com'::postgrurl;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT 'eacebook.com'::postgrurl <> 'facebook.com'::postgrurl;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT 'eacebook.com'::postgrurl < 'facebook.com'::postgrurl;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT 'eacebook.com'::postgrurl > 'facebook.com'::postgrurl;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT 'eacebook.com'::postgrurl <= 'facebook.com'::postgrurl;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT 'eacebook.com'::postgrurl >= 'facebook.com'::postgrurl;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT purl, sameHost(purl, 'test.com/file.txt'), sameFile(purl, 'test.com/file.txt') FROM testurl;
+                  purl                  | samehost | samefile 
+----------------------------------------+----------+----------
+ raw: test                              | f        | f
+ raw: http://test.com                   | f        | f
+ raw: http://test.com/file.txt          | f        | f
+ raw: http://test.com/random/path/      | t        | f
+ raw: http://test.com:8162              | f        | f
+ raw: http://test.com:10/about/file.txt | t        | f
+ raw: http://test.com/about/file.txt    | t        | f
+(7 rows)
+
+CREATE INDEX postgrurl_idx ON testurl(purl);
+SET enable_seqscan TO off;
+EXPLAIN ANALYSE SELECT purl FROM testurl WHERE sameFile(purl, 'http://test.com/file.txt'::postgrurl);
+                                                           QUERY PLAN                                                           
+--------------------------------------------------------------------------------------------------------------------------------
+ Index Only Scan using postgrurl_idx on testurl  (cost=0.13..13.99 rows=2 width=1024) (actual time=0.168..0.189 rows=1 loops=1)
+   Filter: samefile(purl, 'raw: http://test.com/file.txt'::postgrurl)
+   Rows Removed by Filter: 6
+   Heap Fetches: 7
+ Planning Time: 0.410 ms
+ Execution Time: 0.268 ms
 (6 rows)
 
-SELECT URL('http://test.com/hola?query=6'::postgrurl, 'http://test.com/hola');
-                                         url                                          
---------------------------------------------------------------------------------------
- raw: http://test.com/hola, scheme: http, host: test.com, file: /hola, defaultPort:80
+SELECT purl FROM testurl WHERE sameFile(purl, 'http://test.com/file.txt'::postgrurl);
+             purl              
+-------------------------------
+ raw: http://test.com/file.txt
 (1 row)
 
-SELECT URL('http://test.com/hola?query=6'::postgrurl, '/halamadrid');
-                                                   url                                                    
-----------------------------------------------------------------------------------------------------------
- raw: http://test.com/halamadrid, scheme: http, host: test.com, file: /halamadrid, defaultPort:80, query:
+EXPLAIN ANALYSE SELECT sameHost(purl, 'test.com/file.txt'::postgrurl) FROM testurl;
+                                                         QUERY PLAN                                                          
+-----------------------------------------------------------------------------------------------------------------------------
+ Index Only Scan using postgrurl_idx on testurl  (cost=0.13..13.99 rows=7 width=1) (actual time=0.050..0.091 rows=7 loops=1)
+   Heap Fetches: 7
+ Planning Time: 0.056 ms
+ Execution Time: 0.104 ms
+(4 rows)
+
+SELECT sameHost(purl, 'test.com/file.txt'::postgrurl) FROM testurl;
+ samehost 
+----------
+ f
+ f
+ f
+ f
+ t
+ t
+ t
+(7 rows)
+
+EXPLAIN ANALYSE SELECT * FROM testurl WHERE purl = URL('http', 'test.com', 'about/file.txt');
+                                                        QUERY PLAN                                                        
+--------------------------------------------------------------------------------------------------------------------------
+ Index Scan using postgrurl_idx on testurl  (cost=0.13..8.15 rows=1 width=1028) (actual time=0.022..0.023 rows=1 loops=1)
+   Index Cond: (purl = 'raw: http://test.com/about/file.txt'::postgrurl)
+ Planning Time: 0.097 ms
+ Execution Time: 0.038 ms
+(4 rows)
+
+SELECT * FROM testurl WHERE purl = URL('http', 'test.com', 'about/file.txt');
+ id |                purl                 
+----+-------------------------------------
+  7 | raw: http://test.com/about/file.txt
 (1 row)
 
-SELECT URL('http://test.com/hola/hahahaha'::postgrurl, 'hola');
-                                                  url                                                   
---------------------------------------------------------------------------------------------------------
- raw: http://test.com/hola/hola, scheme: http, host: test.com, file: /hola/hola, defaultPort:80, query:
-(1 row)
+EXPLAIN ANALYSE SELECT * FROM testurl WHERE purl >= 'http://test.com'::postgrurl;
+                                                        QUERY PLAN                                                        
+--------------------------------------------------------------------------------------------------------------------------
+ Index Scan using postgrurl_idx on testurl  (cost=0.13..8.17 rows=2 width=1028) (actual time=0.174..0.176 rows=6 loops=1)
+   Index Cond: (purl >= 'raw: http://test.com'::postgrurl)
+ Planning Time: 0.061 ms
+ Execution Time: 0.187 ms
+(4 rows)
 
-SELECT URL('http://test.com/hola?query=6'::postgrurl, 'halamadrid');
-                                                   url                                                    
-----------------------------------------------------------------------------------------------------------
- raw: http://test.com/halamadrid, scheme: http, host: test.com, file: /halamadrid, defaultPort:80, query:
-(1 row)
+SELECT * FROM testurl WHERE purl >= 'http://test.com'::postgrurl AND purl <= 'https://test.com/random/path/about/';
+ id |               purl                
+----+-----------------------------------
+  2 | raw: http://test.com
+  5 | raw: http://test.com:8162
+  3 | raw: http://test.com/file.txt
+  4 | raw: http://test.com/random/path/
+(4 rows)
 
-SELECT postgrurl_eq('12345'::postgrurl, '123456'::postgrurl);
- postgrurl_eq 
---------------
+EXPLAIN ANALYSE SELECT sameFile('test.com/about/file.txt', 'test.com/file.txt');
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
+ Result  (cost=0.00..0.01 rows=1 width=1) (actual time=0.001..0.001 rows=1 loops=1)
+ Planning Time: 0.070 ms
+ Execution Time: 0.005 ms
+(3 rows)
+
+SELECT sameFile('test.com/about/file.txt', 'test.com/file.txt');
+ samefile 
+----------
  f
 (1 row)
 
-SELECT postgrurl_eq('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
- postgrurl_eq 
---------------
- t
-(1 row)
-
-SELECT postgrurl_gt('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
- postgrurl_gt 
---------------
- f
-(1 row)
-
-SELECT postgrurl_gt('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
- postgrurl_gt 
---------------
- t
-(1 row)
-
-SELECT postgrurl_gte('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
- postgrurl_gte 
----------------
- t
-(1 row)
-
-SELECT postgrurl_gte('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
- postgrurl_gte 
----------------
- t
-(1 row)
-
-SELECT postgrurl_gte('eacebook.com'::postgrurl, 'facebook.com'::postgrurl);
- postgrurl_gte 
----------------
- f
-(1 row)
-
-SELECT postgrurl_lt('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
- postgrurl_lt 
---------------
- f
-(1 row)
-
-SELECT postgrurl_lt('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
- postgrurl_lt 
---------------
- f
-(1 row)
-
-SELECT postgrurl_lte('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
- postgrurl_lte 
----------------
- t
-(1 row)
-
-SELECT postgrurl_lte('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
- postgrurl_lte 
----------------
- f
-(1 row)
-
-SELECT postgrurl_lte('eacebook.com'::postgrurl, 'facebook.com'::postgrurl);
- postgrurl_lte 
----------------
- t
-(1 row)
-
+SET enable_seqscan TO on;
+DROP INDEX IF EXISTS postgrurl_idx;
+DROP TABLE testurl;

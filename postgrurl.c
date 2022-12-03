@@ -1,8 +1,11 @@
-/*
-
-    C Code that implements a URL handler for Postgres extensions. This handler mimics java.net.URL class.
-
-*/
+/************************************************************************************************************
+*    C Code that implements a URL handler for Postgres extensions. This handler mimics java.net.URL class.   *
+*    Authors:                                                                                                *
+*        Luis Alfredo Leon - luis.leon.villapun@ulb.be                                                       *
+*        Maren Hoschek                                                                                       *
+*        Satria Bagus                                                                                        *
+*        Sayyor Yusupov                                                                                      *
+*************************************************************************************************************/
 
 #include <stdio.h>
 #include "postgres.h"
@@ -19,11 +22,10 @@
 
 PG_MODULE_MAGIC;
 
-/*
-Types and Functions declaration
-*/
+/*********************************************************************************
+*  Type declaration                                                              *
+**********************************************************************************/
 
-// Types
 struct postgrurl{
     char *raw;
     char *scheme;
@@ -32,129 +34,49 @@ struct postgrurl{
     char *query;
     int port;
     int defaultPort;
-}; // Already processed url
-
+};
 typedef struct postgrurl postgrurl;
 
+/*********************************************************************************
+* Helper functions                                                               *
+**********************************************************************************/
 
-//Check if a string only contains digits (for recognizing the port)
-int digits_only(const char *s)
-{
-    while (*s) {
+int digits_only(const char *s){
+    /*
+        Check if a string only contains digits (for recognizing the port).
+        TODO: Check if necessary
+    */
+    while (*s){
         if (isdigit(*s++) == 0) return 0;
     }
-
     return 1;
 }
 
-//get the default port for a protocol
 int assignDefaultPort(const char *protocol){
-
+    /*
+        Gets the default port for a protocol given common protocol schemes.
+        Params:
+            char* protocol: Protocol to detect the default port from. For example: "http".
+        Return:
+            Default port of the queried protocol. 0 If not found.
+    */
 	int defaultPort;
-
-	if (strcmp(protocol, "http") == 0)
-	{
+	if (strcmp(protocol, "http") == 0){
 		defaultPort = 80;
-
-	}else if (strcmp(protocol, "https") == 0)
-	{
+	}
+    else if(strcmp(protocol, "https") == 0){
 		defaultPort = 443;
-
-	}else
-	{
+	}else{
 		defaultPort = 0;
 	}
-
 	return defaultPort;
 }
 
-/*
-    Constructors
-*/
-
-//Constructor with protocol, host, port, file
-postgrurl* new_URL1(char* protocol, char* host, int port, char* file) {
-	   postgrurl* url = palloc(sizeof(postgrurl));
-     char *raw = malloc(sizeof(char) * ((strlen(protocol)+strlen(host)+strlen(file)) +6));
-
-     url->scheme = strdup(protocol);
-     url->host = strdup(host);
-	   url->file = strdup(file);
-	   url->port = port;
-
-     url->query = NULL;
-
-    snprintf(raw, sizeof(raw), "%s://%s:%d/%s", protocol, host,port,file);
-    url->raw = strdup(raw);
-
-    return url;
-}
-
-//Constructor with protocol, host,file
-postgrurl* new_URL2(char* protocol, char* host,char* file) {
-    postgrurl* url = palloc(sizeof(postgrurl));
-    char *raw = malloc(sizeof(char) * ((strlen(protocol)+strlen(host)+strlen(file)) +6));
-    url->scheme = strdup(protocol);
-    url->host = strdup(host);
-	  url->file = strdup(file);
-    url->defaultPort = assignDefaultPort(protocol);
-
-    url->query = NULL;
-    url->port = 0;
-
-    snprintf(raw, sizeof(raw), "%s://%s/%s", protocol, host, file);
-    url->raw = strdup(raw);
-
-    return url;
-}
-
-
-char * url_to_string(postgrurl* url){
-    char port[5];
-    char defaultPort[5];
-    char * stringed_url = palloc(1024*sizeof(char));
-    strcpy(stringed_url, "(");
-
-    if(url->raw){
-        strcpy(stringed_url, "raw: ");
-        strcat(stringed_url, url->raw);
-    }
-    if(url->scheme != NULL){
-        strcat(stringed_url, ", scheme: ");
-        strcat(stringed_url, url->scheme);
-    }
-    if(url->host != NULL){
-        strcat(stringed_url, ", host: ");
-        strcat(stringed_url, url->host);
-    }
-    if(url->file != NULL){
-        strcat(stringed_url, ", file: ");
-        strcat(stringed_url, url->file);
-    }
-    if(url->port != NULL){
-        strcat(stringed_url, ", port: ");
-        sprintf(port, "%d", url->port);
-        strcat(stringed_url, port);
-    }
-
-    if(url->defaultPort != NULL){
-        strcat(stringed_url, ", defaultPort:");
-        sprintf(defaultPort, "%d", url->defaultPort);
-        strcat(stringed_url, defaultPort);
-
-    }
-
-    if(url->query != NULL){
-        strcat(stringed_url, ", query:");
-        strcat(stringed_url, url->query);
-    }
-    return stringed_url;
-}
-
-
-//Parse a string to url data type
 postgrurl* string_to_url(char* str){
-
+    /*
+        Converts a given string into a url representation.
+        TODO: Requires serious revision. Unstable.
+    */
 	int ind = 0;
 	char delim[] = "://";
 	postgrurl* url = malloc(sizeof(postgrurl));
@@ -470,7 +392,7 @@ postgrurl* string_to_url(char* str){
 	free(host);
 	free(file);
 	free(query);
-  free(raw);
+    free(raw);
 	free(str_copy);
 
   //Problem
@@ -480,7 +402,183 @@ postgrurl* string_to_url(char* str){
 
 }
 
-// Constructor with URL and spec
+char * url_to_string(postgrurl* url){
+    /*
+        Converts a url struct into a readable string representation.
+    */
+    char * port = (char *) palloc(6*sizeof(char));
+    char *defaultPort = (char *) palloc(6*sizeof(char));
+    char * stringed_url = (char *) palloc(1024*sizeof(char));
+    strcpy(stringed_url, "");
+    if(url->raw != NULL){
+        strcpy(stringed_url, "raw: ");
+        strcat(stringed_url, url->raw);
+    }
+    /*if(url->scheme != NULL){
+        strcat(stringed_url, ", scheme: ");
+        strcat(stringed_url, url->scheme);
+    }
+    if(url->host != NULL){
+        strcat(stringed_url, ", host: ");
+        strcat(stringed_url, url->host);
+    }
+    if(url->file != NULL){
+        strcat(stringed_url, ", file: ");
+        strcat(stringed_url, url->file);
+    }
+    if(url->port != NULL){
+        strcat(stringed_url, ", port: ");
+        sprintf(port, "%d", url->port);
+        strcat(stringed_url, port);
+    }
+    if(url->defaultPort != NULL){
+        strcat(stringed_url, ", defaultPort:");
+        sprintf(defaultPort, "%d", url->defaultPort);
+        strcat(stringed_url, defaultPort);
+    }
+    if(url->query != NULL){
+        strcat(stringed_url, ", query:");
+        strcat(stringed_url, url->query);
+    }*/
+    pfree(port);
+    pfree(defaultPort);
+    return stringed_url;
+}
+
+int _sameHost(postgrurl* url1, postgrurl* url2){
+    if(url1->host != NULL && url2->host != NULL){
+        int eq = strcmp(url1->host, url2->host);
+        return eq;
+    }
+    else if(url1->host == NULL && url2->host != NULL){
+        return -1;
+    }
+    else if(url1->host != NULL && url2->host == NULL){
+        return 1;
+    }
+    else{
+        return 0;
+    }
+}
+
+int _sameFile(postgrurl* url1, postgrurl* url2){
+    if(url1->file != NULL && url2->file != NULL){
+        int eq = strcmp(url1->file, url2->file);
+        return eq;
+    }
+    else if(url1->file == NULL && url2->file != NULL){
+        return -1;
+    }
+    else if(url1->file != NULL && url2->file == NULL){
+        return 1;
+    }
+    else{
+        return 0;
+    }
+}
+
+int _equals(postgrurl* url1, postgrurl* url2){
+    if(url1->raw != NULL && url2->raw != NULL){
+        int eq = strcmp(url1->raw, url2->raw); 
+        return eq;
+    }
+    else if(url1->raw == NULL && url2->raw != NULL){
+        return -1;
+    }
+    else if(url1->raw != NULL && url2->raw == NULL){
+        return 1;
+    }
+    else{
+        return 0;
+    }
+}
+
+
+int _cmp(postgrurl* url1, postgrurl* url2){
+    int sameHost = _sameHost(url1, url2);
+    if(sameHost == 0){
+        int sameFile = _sameFile(url1, url2);
+        if(sameFile == 0){
+            int sameRaw = _equals(url1, url2);
+            if(sameRaw==0){
+                return 0;
+            }
+            else if(sameRaw<0){
+                return -1;
+            }
+            else{
+                return 1;
+            }
+        }
+        else if(sameFile < 0){
+            return -2;
+        }
+        else if(sameFile > 0){
+            return 2;
+        }
+    }
+    else if(sameHost < 0){
+        return -3;
+    }
+    else if(sameHost > 0){
+        return 3;
+    }
+}
+
+
+/*********************************************************************************
+* Constructors                                                                   *
+**********************************************************************************/
+postgrurl* URLFromString(char* rawString){
+    /*
+        Constructs a url struct based on a string representation.
+    */
+    postgrurl *url = (postgrurl *) palloc(sizeof(postgrurl));
+    url = string_to_url(rawString);
+    return url;
+}
+
+postgrurl* URLFromProtocolHostPortFile(char* protocol, char* host, int port, char* file) {
+    /*
+        Constructor with protocol, host, port, file.
+    */
+    postgrurl* url = (postgrurl*) palloc(sizeof(postgrurl));
+    int raw_size = sizeof(char) * ((strlen(protocol)+strlen(host)+strlen(file)+5+5+1));
+    char *raw = (char *) palloc(raw_size);
+
+    url->scheme = strdup(protocol);
+    url->host = strdup(host);
+	url->file = strdup(file);
+	url->port = port;
+    int defaultPort = assignDefaultPort(protocol);
+    url->defaultPort=defaultPort;
+
+    snprintf(raw, raw_size, "%s://%s:%d/%s", url->scheme, url->host, url->port, url->file);
+    url->raw = strdup(raw);
+    pfree(raw);
+    return url;
+}
+
+postgrurl* URLFromProtocolHostFile(char* protocol, char* host, char* file) {
+    /*
+        Constructor with protocol, host and file.
+    */
+    postgrurl* url = (postgrurl*) palloc(sizeof(postgrurl));
+    int raw_size = sizeof(char) * ((strlen(protocol)+strlen(host)+strlen(file)+ 5+5+1));
+    char *raw = (char *) palloc(raw_size);
+    url->scheme = strdup(protocol);
+    url->host = strdup(host);
+    url->file = strdup(file);
+    int defaultPort = assignDefaultPort(protocol);
+    url->defaultPort = defaultPort;
+    url->port = 0; // TODO: Change to null if it doesn't break other code.
+
+    snprintf(raw, raw_size, "%s://%s/%s", protocol, host, file);
+    url->raw = strdup(raw);
+    pfree(raw);
+    return url;
+}
+
 postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
     //Check whether spec contains scheme or not
     int index;
@@ -649,53 +747,59 @@ PG_FUNCTION_INFO_V1(url_in);
 Datum url_in(PG_FUNCTION_ARGS){
     char *rawstr = PG_GETARG_CSTRING(0);
     postgrurl *url;
-    url = (postgrurl *) palloc(sizeof(postgrurl));
-    url = string_to_url(rawstr);
+    url = URLFromString(rawstr);
+    pfree(rawstr);
     PG_RETURN_POINTER(url);
+    pfree(url);
 }
 
 PG_FUNCTION_INFO_V1(url_out);
 Datum url_out(PG_FUNCTION_ARGS){
-    postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
+    postgrurl *url = PG_GETARG_POINTER(0);
     char *output = url_to_string(url);
     output = psprintf("%s", output);
     PG_RETURN_CSTRING(output);
+    free(output);
 }
 
 PG_FUNCTION_INFO_V1(URL_constructor_str);
 Datum URL_constructor_str(PG_FUNCTION_ARGS){
-  postgrurl *url;
-  char *rawstr = PG_GETARG_CSTRING(0);
-  url = (postgrurl *) palloc(sizeof(postgrurl));
-  url = string_to_url(rawstr);
-
-  PG_RETURN_POINTER(url);
+    char *rawstr = PG_GETARG_CSTRING(0);
+    postgrurl *url;
+    url = URLFromString(rawstr);
+    pfree(rawstr);
+    PG_RETURN_POINTER(url);
+    //pfree(url);
 }
 
 PG_FUNCTION_INFO_V1(URL_constructor1);
 Datum URL_constructor1(PG_FUNCTION_ARGS){
-  postgrurl *url;
-  char *protocol = PG_GETARG_CSTRING(0);
-  char *host = PG_GETARG_CSTRING(1);
-  int port = PG_GETARG_INT32(2);
-  char *file = PG_GETARG_CSTRING(3);
-
-  url = (postgrurl *) palloc(sizeof(postgrurl));
-  url = new_URL1(protocol,host,port,file);
-  PG_RETURN_POINTER(url);
+    postgrurl * url;
+    char *protocol = PG_GETARG_CSTRING(0);
+    char *host = PG_GETARG_CSTRING(1);
+    int port = PG_GETARG_INT32(2);
+    char *file = PG_GETARG_CSTRING(3);
+    url = URLFromProtocolHostPortFile(protocol,host,port,file);
+    pfree(protocol);
+    pfree(host);
+    pfree(file);
+    PG_RETURN_POINTER(url);
+    //pfree(url);
 }
 
 
 PG_FUNCTION_INFO_V1(URL_constructor2);
 Datum URL_constructor2(PG_FUNCTION_ARGS){
-  postgrurl *url;
-  char *protocol = PG_GETARG_CSTRING(0);
-  char *host = PG_GETARG_CSTRING(1);
-  char *file = PG_GETARG_CSTRING(2);
-
-  url = (postgrurl *) palloc(sizeof(postgrurl));
-  url = new_URL2(protocol,host,file);
-  PG_RETURN_POINTER(url);
+    postgrurl *url;
+    char *protocol = PG_GETARG_CSTRING(0);
+    char *host = PG_GETARG_CSTRING(1);
+    char *file = PG_GETARG_CSTRING(2);
+    url = URLFromProtocolHostFile(protocol,host,file);
+    pfree(protocol);
+    pfree(host);
+    pfree(file);
+    PG_RETURN_POINTER(url);
+    //pfree(url);
 }
 
 PG_FUNCTION_INFO_V1(URL_constructor5);
@@ -732,72 +836,84 @@ PG_FUNCTION_INFO_V1(equals);
 Datum equals(PG_FUNCTION_ARGS){
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
-    int eq = strcmp(url1->raw, url2->raw);
+    int eq = _cmp(url1, url2);
     if(eq==0){
         PG_RETURN_BOOL(true);
     }
     PG_RETURN_BOOL(false);
+    pfree(url1);
+    pfree(url2);
 }
 
 PG_FUNCTION_INFO_V1(greater_than);
 Datum greater_than(PG_FUNCTION_ARGS){
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
-    int eq = strcmp(url1->raw, url2->raw);
+    int eq = _cmp(url1, url2);
     if(eq>0){
         PG_RETURN_BOOL(true);
     }
     PG_RETURN_BOOL(false);
+    pfree(url1);
+    pfree(url2);
 }
 
 PG_FUNCTION_INFO_V1(less_than);
 Datum less_than(PG_FUNCTION_ARGS){
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
-    int eq = strcmp(url1->raw, url2->raw);
+    int eq = _cmp(url1, url2);
     if(eq<0){
         PG_RETURN_BOOL(true);
     }
     PG_RETURN_BOOL(false);
+    pfree(url1);
+    pfree(url2);
 }
 
 PG_FUNCTION_INFO_V1(greater_than_equals);
 Datum greater_than_equals(PG_FUNCTION_ARGS){
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
-    int eq = strcmp(url1->raw, url2->raw);
+    int eq = _cmp(url1, url2);
     if(eq>=0){
         PG_RETURN_BOOL(true);
     }
     PG_RETURN_BOOL(false);
+    pfree(url1);
+    pfree(url2);
 }
 
 PG_FUNCTION_INFO_V1(less_than_equals);
 Datum less_than_equals(PG_FUNCTION_ARGS){
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
-    int eq = strcmp(url1->raw, url2->raw);
+    int eq = _cmp(url1, url2);
     if(eq<=0){
         PG_RETURN_BOOL(true);
     }
     PG_RETURN_BOOL(false);
+    pfree(url1);
+    pfree(url2);
 }
 
 PG_FUNCTION_INFO_V1(cmp);
 Datum cmp(PG_FUNCTION_ARGS){
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
-    int eq = strcmp(url1->raw, url2->raw);
-    if(eq==0){PG_RETURN_INT32(0);}
-    else if(eq<0){PG_RETURN_INT32(-1);}
-    else{PG_RETURN_INT32(1);}
+    int cmp = _cmp(url1, url2);
+    PG_RETURN_INT32(cmp);
+    pfree(url1);
+    pfree(url2);
 }
 
 PG_FUNCTION_INFO_V1(not_equals);
 Datum not_equals(PG_FUNCTION_ARGS){
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
-    int eq = strcmp(url1->raw, url2->raw);
+    int eq = _equals(url1, url2);
+    //pfree(url1);
+    //pfree(url2);
     if(eq==0){
         PG_RETURN_BOOL(false);
     }
@@ -841,9 +957,9 @@ Datum getFile(PG_FUNCTION_ARGS){
 PG_FUNCTION_INFO_V1(getHost);
 Datum getHost(PG_FUNCTION_ARGS){
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
-    char * output = palloc(50*sizeof(char));
-
-    if(url->file != NULL){
+    char * output;
+    if(url->host != NULL){
+        output = (char *) palloc((strlen(url->host)+1)*sizeof(char));
         strcat(output, url->host);
     }
     else{
@@ -888,9 +1004,9 @@ Datum getPort(PG_FUNCTION_ARGS){
 PG_FUNCTION_INFO_V1(getProtocol);
 Datum getProtocol(PG_FUNCTION_ARGS){
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
-    char * output = palloc(50*sizeof(char));
-
+    char * output;
     if(url->scheme != NULL){
+        output = palloc(strlen(url->scheme)*sizeof(char));
         strcat(output, url->scheme);
     }
     else{
@@ -958,12 +1074,9 @@ PG_FUNCTION_INFO_V1(sameFile);
 Datum sameFile(PG_FUNCTION_ARGS){
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
-    if(url1->file != NULL && url2->file != NULL){
-        int eq = strcmp(url1->file, url2->file);
-        if(eq==0){
-            PG_RETURN_BOOL(true);
-        }
-        PG_RETURN_BOOL(false);
+    int eq = _sameFile(url1, url2);
+    if(eq == 0){
+        PG_RETURN_BOOL(true);
     }
     PG_RETURN_BOOL(false);
 }
@@ -972,12 +1085,9 @@ PG_FUNCTION_INFO_V1(sameHost);
 Datum sameHost(PG_FUNCTION_ARGS){
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
-    if(url1->host != NULL && url2->host != NULL){
-        int eq = strcmp(url1->host, url2->host);
-        if(eq==0){
-            PG_RETURN_BOOL(true);
-        }
-        PG_RETURN_BOOL(false);
+    int eq = _sameHost(url1, url2);
+    if(eq == 0){
+        PG_RETURN_BOOL(true);
     }
     PG_RETURN_BOOL(false);
 }
@@ -987,5 +1097,6 @@ Datum toString(PG_FUNCTION_ARGS){
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
     char *output = url_to_string(url);
     output = psprintf("%s", output);
-    PG_RETURN_CSTRING(output);
+    PG_RETURN_CSTRING(output); 
+    free(output);
 }
