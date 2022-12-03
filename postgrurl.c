@@ -488,7 +488,6 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
     char *pos = strstr(spec, delimiter);
     index = pos ? pos - spec : -1;
     if (index != -1 || index > 0) {
-
         // Convert spec to URL
         postgrurl* spec_url;
         spec_url = string_to_url(spec);
@@ -504,14 +503,15 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
     // Case spec is path
     // Get file and query from spec
     char * query_split = palloc((strlen(spec) + 1 )* sizeof(char));
-    char * file = palloc((strlen(spec) + 1 ) * sizeof(char));
     char * query = palloc((strlen(spec) + 1 ) *sizeof(char));
+
+    char * file = palloc(1024* sizeof(char));
 
     if(strstr(spec,"?") != NULL) {
         query_split = strtok(spec, "?");
         strcpy(file, query_split);
         char * raw = palloc(1024 * sizeof(char));
-    strcpy(raw, "");
+        strcpy(raw, "");
 
 
         query_split = strtok(NULL, "?");
@@ -548,7 +548,7 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
             file_part = realloc (file_part, sizeof (char*) * ++n_spaces);
 
             if (file_part == NULL)
-                exit (-1); /* memory allocation failed */
+                exit (-1);
 
             file_part[n_spaces-1] = ptr;
             ptr = strtok (NULL, delim);
@@ -563,22 +563,25 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
         file_part[n_spaces] = 0;
 
         // Combine file and new path
-        char * combined_file = palloc(1024*sizeof(char));
+        char * combined_file;
+        combined_file = palloc(1024*sizeof(char));
         strcpy(combined_file, "");
 
         for (int i = 0; i < (n_spaces+1); ++i) {
             if (file_part[i]) {
                 strcat(combined_file, "/");
-                strcpy(combined_file+strlen(combined_file), file_part[i]);
+                strcat(combined_file, file_part[i]);
             }
         }
 
         // Combine path with file
         strcat(combined_file, "/");
         strcat(combined_file, file);
-        file = strdup(combined_file);
+        strcpy(file, combined_file);
 
         free(file_part);
+
+        pfree(combined_file);
     }
 
     // Transform new raw value
@@ -609,6 +612,10 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
         strcat(raw, query);
     }
     context->raw = strdup(raw);
+
+    pfree(query);
+    pfree(raw);
+    pfree(file);
 
     return context;
 }
