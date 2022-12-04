@@ -1,7 +1,17 @@
--- complain if script is sourced in psql, rather than via CREATE EXTENSION
+/*************************************************************************************************************
+*    SQL Code that implements a URL handler for Postgres extensions. This handler mimics java.net.URL class. *
+*    Authors:                                                                                                *
+*        Luis Alfredo Leon - luis.leon.villapun@ulb.be                                                       *
+*        Maren Hoschek - maren.hoschek@ulb.be                                                                *
+*        Satria Bagus - satria.wicaksono@ulb.be                                                              *
+*        Sayyor Yusupov - sayyor.yusupov@ulb.be                                                              *
+*************************************************************************************************************/
+
 \echo Use "CREATE EXTENSION postgrurl" to load this file. \quit
 
--- Function declarations
+/*********************************************************************************
+*  Data type functions                                                           *
+*********************************************************************************/
 
 CREATE OR REPLACE FUNCTION url_in(cstring)
 RETURNS postgrurl
@@ -13,7 +23,10 @@ RETURNS cstring
 AS '$libdir/postgrurl'
 LANGUAGE C IMMUTABLE STRICT;
 
--- Type Creation
+/********************************************************************************
+*  Data type creation                                                           *
+********************************************************************************/
+
 CREATE TYPE postgrurl(
     INPUT           =   url_in,
     OUTPUT          =   url_out,
@@ -24,27 +37,33 @@ CREATE TYPE postgrurl(
 
 COMMENT ON TYPE postgrurl IS 'Type to handle URL strings. Implements useful functions that mimic java.net.URL class.';
 
---Constructors
+/*********************************************************************************
+*  Constructors                                                                  *
+*********************************************************************************/
+
 CREATE FUNCTION URL(cstring)
  RETURNS postgrurl
- AS 'MODULE_PATHNAME', 'URL_constructor_str'
+ AS 'MODULE_PATHNAME', 'URLPostgresFromString'
  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
 CREATE FUNCTION URL(cstring,cstring,integer,cstring)
  RETURNS postgrurl
- AS 'MODULE_PATHNAME', 'URL_constructor1'
+ AS 'MODULE_PATHNAME', 'URLPostgresFromProtocolHostPortFile'
  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
 CREATE FUNCTION URL(cstring,cstring,cstring)
  RETURNS postgrurl
- AS 'MODULE_PATHNAME', 'URL_constructor2'
+ AS 'MODULE_PATHNAME', 'URLPostgresFromProtocolHostFile'
  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
 CREATE FUNCTION URL(postgrurl,cstring)
  RETURNS postgrurl
- AS 'MODULE_PATHNAME', 'URL_constructor5'
+ AS 'MODULE_PATHNAME', 'URLPostgresFromContext'
  LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
---------------------------------------------
+
+/********************************************************************************
+*  Equality functions                                                           *
+********************************************************************************/
 
 CREATE OR REPLACE FUNCTION _postgrurl_eq(postgrurl, postgrurl)
 RETURNS BOOLEAN
@@ -81,7 +100,9 @@ RETURNS BOOLEAN
 AS '$libdir/postgrurl', 'not_equals'
 LANGUAGE C IMMUTABLE STRICT;
 
--- Operators
+/********************************************************************************
+*  Operators and Operator Class for Btree                                       *
+*********************************************************************************/
 
 CREATE OPERATOR = (
     LEFTARG = postgrurl,
@@ -159,6 +180,11 @@ AS
     OPERATOR    5   >,
     FUNCTION    1   postgrurl_cmp(postgrurl, postgrurl);
 
+
+/*********************************************************************************
+*  Helper functions                                                              *
+*********************************************************************************/
+
 CREATE OR REPLACE FUNCTION getFile(postgrurl)
 RETURNS cstring
 AS '$libdir/postgrurl', 'getFile'
@@ -170,8 +196,13 @@ AS '$libdir/postgrurl', 'getHost'
 LANGUAGE C IMMUTABLE STRICT;
 
 CREATE OR REPLACE FUNCTION getPort(postgrurl)
-RETURNS int
+RETURNS INTEGER
 AS '$libdir/postgrurl', 'getPort'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION getDefaultPort(postgrurl)
+RETURNS INTEGER
+AS '$libdir/postgrurl', 'getDefaultPort'
 LANGUAGE C IMMUTABLE STRICT;
 
 CREATE OR REPLACE FUNCTION getProtocol(postgrurl)
@@ -220,3 +251,15 @@ CREATE OR REPLACE FUNCTION toString(postgrurl)
 RETURNS cstring
 AS '$libdir/postgrurl', 'toString'
 LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION getAuthority(postgrurl)
+RETURNS cstring
+AS '$libdir/postgrurl', 'getAuthority'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION getUserInfo(postgrurl)
+RETURNS cstring
+AS '$libdir/postgrurl', 'getUserInfo'
+LANGUAGE C IMMUTABLE STRICT;
+
+

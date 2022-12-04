@@ -44,7 +44,6 @@ typedef struct postgrurl postgrurl;
 int digits_only(const char *s){
     /*
         Check if a string only contains digits (for recognizing the port).
-        TODO: Check if necessary
     */
     while (*s){
         if (isdigit(*s++) == 0) return 0;
@@ -55,10 +54,6 @@ int digits_only(const char *s){
 int assignDefaultPort(const char *protocol){
     /*
         Gets the default port for a protocol given common protocol schemes.
-        Params:
-            char* protocol: Protocol to detect the default port from. For example: "http".
-        Return:
-            Default port of the queried protocol. 0 If not found.
     */
 	int defaultPort;
 	if (strcmp(protocol, "http") == 0){
@@ -75,24 +70,23 @@ int assignDefaultPort(const char *protocol){
 postgrurl* string_to_url(char* str){
     /*
         Converts a given string into a url representation.
-        TODO: Requires serious revision. Unstable.
     */
 	int ind = 0;
 	char delim[] = "://";
 	postgrurl* url = malloc(sizeof(postgrurl));
 
-  //helper variables
+    //helper variables
 	char *str_copy;
 	char *value;
 	char *query_split;
-  char string_port[5];
+    char string_port[5];
 
 	//query parts
 	char *scheme;
-  char *host;
+    char *host;
 	char *file;
-  char *query;
-  char *raw;
+    char *query;
+    char *raw;
 	int port = 0;
 
 	//check variables
@@ -100,19 +94,19 @@ postgrurl* string_to_url(char* str){
 	int with_port;
 	int with_file;
 	int with_query;
-  int end_slash=0;
+    int end_slash=0;
 
 
 	//memory allocation
 	scheme = malloc(sizeof(char) * (strlen(str)+1));
 	strcpy(scheme,"");
 	host = malloc(sizeof(char) * (strlen(str)+1));
-  strcpy(host,"");
+    strcpy(host,"");
 	file = malloc(sizeof(char) * (strlen(str)+1));
 	strcpy(file,"");
 	query = malloc(sizeof(char) * (strlen(str)+1));
 	strcpy(query,"");
-  raw = malloc(sizeof(char) * (strlen(str)+1));
+    raw = malloc(sizeof(char) * (strlen(str)+1));
 	strcpy(raw,"");
 	str_copy = malloc(sizeof(char) * (strlen(str)+1));
 	strcpy(str_copy,str);
@@ -121,21 +115,18 @@ postgrurl* string_to_url(char* str){
 
 	//determine which parts are contained in the URL
 	with_protocol = strstr(str,"://");
-	if(with_protocol!= NULL)
-	{
+	if(with_protocol!= NULL){
 		char *ptr = strtok(str_copy, ":");
 		char *url_part = str + strlen(ptr)+3;
 		with_port = strstr(url_part,":");
 		with_file = strstr(url_part,"/");
 		with_query = strstr(url_part,"?");
-
 	}else{
 		with_port = strstr(str,":");
 		with_file = strstr(str,"/");
 		with_query = strstr(str,"?");
 	}
-
-  //check if file part ends with /
+    //check if file part ends with /
 	if(with_file != NULL){
 		strcpy(file+strlen(file),"/");
 		if(strstr(str,"/?")!= NULL || str[strlen(str)-1]=='/'){
@@ -145,43 +136,37 @@ postgrurl* string_to_url(char* str){
 
 	char *ptr = strtok(str, delim);
 
-  //split the URL string into its individual components
-	while(ptr != NULL)
-	{
+    //split the URL string into its individual components
+	while(ptr != NULL){
 		value = ptr;
-		switch(ind)
-		{
+		switch(ind){
 			case 0:
 				//first part is either host or protocol
-				if(with_protocol!= NULL)
-				{
+				if(with_protocol!= NULL){
 					// https:// ...
 					strcpy(scheme,value);
-				}else
-				{
+				}else{
 					// host...
-          if(strstr(value,"?") != NULL){
-            //host?query
-            query_split = strtok(value, "?");
-            strcpy(host+strlen(host), query_split);
+                    if(strstr(value,"?") != NULL){
+                        //host?query
+                        query_split = strtok(value, "?");
+                        strcpy(host+strlen(host), query_split);
 
-            query_split = strtok(NULL, "?");
-            strcpy(query+strlen(query),"?");
-            strcpy(query+strlen(query), query_split);
-
-          }else{
-            // host...
-            strcpy(host+strlen(host),value);
-          }
+                        query_split = strtok(NULL, "?");
+                        strcpy(query+strlen(query),"?");
+                        strcpy(query+strlen(query), query_split);
+                    }
+                    else{
+                        // host...
+                        strcpy(host+strlen(host),value);
+                    }
 				}
 				break;
-
 			case 1:
-        //If first part was protocol second most be the host otherwise it
-        //can be port,query or file
-				if(with_protocol != NULL)
-				{
-          if(strstr(value,"?") != NULL){
+                //If first part was protocol second most be the host otherwise it
+                //can be port,query or file
+				if(with_protocol != NULL){
+                    if(strstr(value,"?") != NULL){
 						// https://host?query
 						query_split = strtok(value, "?");
 						strcpy(host+strlen(host), query_split);
@@ -192,36 +177,34 @@ postgrurl* string_to_url(char* str){
 					}else{
 						// https://host
 						strcpy(host+strlen(host),value);
-          }
-
-				}else
-				{
-					if(with_port!=NULL)
-					{ //add check for valid port
-            if(strstr(value,"?") != NULL){
+                    }
+				}
+                else{
+					if(with_port!=NULL){ //add check for valid port
+                        if(strstr(value,"?") != NULL){
 							// host:port?query
 							query_split = strtok(value, "?");
 							port = atoi(query_split);
-              strcpy(string_port,query_split);
+                            strcpy(string_port,query_split);
 
 							query_split = strtok(NULL, "?");
 							strcpy(query+strlen(query),"?");
 							strcpy(query+strlen(query), query_split);
 
-						} else{
+						} 
+                        else{
 							// host:port
 							port = atoi(value);
-              strcpy(string_port,value);
+                            strcpy(string_port,value);
 						}
-
-					}else if(strstr(value,"?") != NULL)
-					{// host/file?query
-
-            if(value[0]=='?'){
+					}
+                    else if(strstr(value,"?") != NULL){
+                        // host/file?query
+                        if(value[0]=='?'){
 							// host/file/?query
 							strcpy(query+strlen(query),value);
-
-						} else {
+						} 
+                        else {
 							// host/file?query
 							query_split = strtok(value, "?");
 							strcpy(file+strlen(file), query_split);
@@ -230,46 +213,43 @@ postgrurl* string_to_url(char* str){
 							query_split = strtok(NULL, "?");
 							strcpy(query+strlen(query),"?");
 							strcpy(query+strlen(query), query_split);
-
 						}
-					}else
-					{	// host/file
-            strcpy(file+strlen(file), value);
+					}
+                    else{
+                        // host/file
+                        strcpy(file+strlen(file), value);
 						strcpy(file+strlen(file),"/");
 					}
 				}
 				break;
 
 			case 2:
-      //if URL contains protocol third part can either be the
-      //port, query or file if URL doesnt contain protocol skip to default case
-				if(with_protocol!= NULL)
-				{
-					if(with_port!=NULL)
-					{	// protocol://host:port
+                //if URL contains protocol third part can either be the
+                //port, query or file if URL doesnt contain protocol skip to default case
+				if(with_protocol!= NULL){
+					if(with_port!=NULL){	// protocol://host:port
 						//Valid port check
-            if(strstr(value,"?") != NULL){
+                        if(strstr(value,"?") != NULL){
 							// protocol://host:port
 							query_split = strtok(value, "?");
 							port = atoi(query_split);
-              strcpy(string_port,query_split);
-
+                            strcpy(string_port,query_split);
 							query_split = strtok(NULL, "?");
 							strcpy(query+strlen(query),"?");
 							strcpy(query+strlen(query), query_split);
-
-						}else{
-							// host:port?query
-              port = atoi(value);
-              strcpy(string_port,value);
-
 						}
-					}else if(strstr(value,"?") != NULL)
-					{
-            if(value[0]=='?'){
+                        else{
+							// host:port?query
+                            port = atoi(value);
+                            strcpy(string_port,value);
+						}
+					}
+                    else if(strstr(value,"?") != NULL){
+                        if(value[0]=='?'){
 							// protocol://host/file/?query
 							strcpy(query+strlen(query),value);
-						}else{
+						}
+                        else{
 							// protocol://host/file?query
 							query_split = strtok(value, "?");
 							strcpy(file+strlen(file), query_split);
@@ -280,26 +260,25 @@ postgrurl* string_to_url(char* str){
 							strcpy(query+strlen(query), query_split);
 						}
 
-					}else
-					{	// protocol://host/file
-            strcpy(file+strlen(file), value);
+					}
+                    else{	
+                        // protocol://host/file
+                        strcpy(file+strlen(file), value);
 						strcpy(file+strlen(file),"/");
 					}
 					break;
 				}
-
 			default:
 				//only possibilities left are file and query
-        //check if remaining part contains a query if not everthing belongs to
-        // the file part
-        if(strstr(value,"?") != NULL)
-				{	// portocol://host:port/file?query
-
-          if(value[0]=='?'){
+                //check if remaining part contains a query if not everthing belongs to
+                // the file part
+                if(strstr(value,"?") != NULL){	
+                    // portocol://host:port/file?query
+                    if(value[0]=='?'){
 						// portocol://host:port/file/?query
 						strcpy(query+strlen(query),value);
-
-					}else{
+					}
+                    else{
 						// portocol://host:port/file?query
 						printf("Value: %s \n", value);
 						query_split = strtok(value, "?");
@@ -312,8 +291,8 @@ postgrurl* string_to_url(char* str){
 						printf("Bis hier %s \n",query_split);
 						strcpy(query+strlen(query), query_split);
 					}
-
-				}else{
+				}
+                else{
 					// portocol://host:port/file
 					strcpy(file+strlen(file), value);
 					strcpy(file+strlen(file),"/");
@@ -324,68 +303,63 @@ postgrurl* string_to_url(char* str){
 		ind++;
 	}
 
-  //if neccesary remove last slash
-  if(end_slash == 0){
-    file[strlen(file)-1] = '\0';
-  }
+    //if neccesary remove last slash
+    if(end_slash == 0){
+        file[strlen(file)-1] = '\0';
+    }
 
-  //Assign the components that were present in the URL string to URL struct
-  // and create the raw string
-  if(with_protocol!=0)
-	{
+    //Assign the components that were present in the URL string to URL struct
+    // and create the raw string
+    if(with_protocol!=0){
 		url->scheme = malloc(strlen(scheme) + 1);
 		strcpy(url->scheme, scheme);
-    strcpy(raw, scheme);
-    strcpy(raw+strlen(raw), "://");
-	}else
-  {
-    url->scheme = NULL;
-  }
+        strcpy(raw, scheme);
+        strcpy(raw+strlen(raw), "://");
+	}
+    else{
+        url->scheme = NULL;
+    }
 
-	if(strcmp(host,"")!=0)
-	{
+	if(strcmp(host,"")!=0){
 		url->host = malloc(strlen(host) + 1);
 		strcpy(url->host,host);
 		strcpy(raw+strlen(raw), host);
-	}else
-  {
-    url->host = NULL;
-  }
+	}
+    else{
+        url->host = NULL;
+    }
 
-  if(with_port!=0)
-  {
-    url->port = port;
-    strcpy(raw+strlen(raw), ":");
-    strcpy(raw+strlen(raw),string_port);
-  } else if (with_protocol!=0)
-  {
-    //protocol but no port .-> assign default port
-    url->defaultPort = assignDefaultPort(scheme);
-  }
+    if(with_port!=0){
+        url->port = port;
+        strcpy(raw+strlen(raw), ":");
+        strcpy(raw+strlen(raw),string_port);
+    } 
+    else if(with_protocol!=0){
+        //protocol but no port .-> assign default port
+        url->defaultPort = assignDefaultPort(scheme);
+    }
 
-	if(with_file!=0)
-	{
+	if(with_file!=0){
 		url->file = malloc(strlen(file) + 1);
 		strcpy(url->file,file);
-    strcpy(raw+strlen(raw), file);
-	}else
-  {
-    url->file = NULL;
-  }
+        strcpy(raw+strlen(raw), file);
+	}
+    else{
+        url->file = NULL;
+    }
 
-	if(with_query!=0)
-	{
+	if(with_query!=0){
 		url->query = malloc(strlen(query) + 1);
 		strcpy(url->query,query);
-    strcpy(raw+strlen(raw), query);
-	}else
-  {
-    url->query = NULL;
-  }
+        strcpy(raw+strlen(raw), query);
+	}
+    else{
+        url->query = NULL;
+    }
 
-  //Assign raw string to struct
-  url->raw = malloc(strlen(raw) + 1);
-  strcpy(url->raw, raw);
+    //Assign raw string to struct
+    url->raw = malloc(strlen(raw) + 1);
+    strcpy(url->raw, raw);
 
 	//free memory
 	free(scheme);
@@ -395,7 +369,7 @@ postgrurl* string_to_url(char* str){
     free(raw);
 	free(str_copy);
 
-  //Problem
+    //Problem
 	//free(query_split);
 
 	return url;
@@ -411,41 +385,20 @@ char * url_to_string(postgrurl* url){
     char * stringed_url = (char *) palloc(1024*sizeof(char));
     strcpy(stringed_url, "");
     if(url->raw != NULL){
-        strcpy(stringed_url, "raw: ");
         strcat(stringed_url, url->raw);
     }
-    /*if(url->scheme != NULL){
-        strcat(stringed_url, ", scheme: ");
-        strcat(stringed_url, url->scheme);
-    }
-    if(url->host != NULL){
-        strcat(stringed_url, ", host: ");
-        strcat(stringed_url, url->host);
-    }
-    if(url->file != NULL){
-        strcat(stringed_url, ", file: ");
-        strcat(stringed_url, url->file);
-    }
-    if(url->port != NULL){
-        strcat(stringed_url, ", port: ");
-        sprintf(port, "%d", url->port);
-        strcat(stringed_url, port);
-    }
-    if(url->defaultPort != NULL){
-        strcat(stringed_url, ", defaultPort:");
-        sprintf(defaultPort, "%d", url->defaultPort);
-        strcat(stringed_url, defaultPort);
-    }
-    if(url->query != NULL){
-        strcat(stringed_url, ", query:");
-        strcat(stringed_url, url->query);
-    }*/
     pfree(port);
     pfree(defaultPort);
     return stringed_url;
 }
 
 int _sameHost(postgrurl* url1, postgrurl* url2){
+    /*
+        Checks if hosts between two urls are the same.
+        If left url is lower than right url, returns -1.
+        If left url is greater than right url, returns 1.
+        If left url equals right url, returns 0.
+    */
     if(url1->host != NULL && url2->host != NULL){
         int eq = strcmp(url1->host, url2->host);
         return eq;
@@ -462,6 +415,12 @@ int _sameHost(postgrurl* url1, postgrurl* url2){
 }
 
 int _sameFile(postgrurl* url1, postgrurl* url2){
+    /*
+        Checks if files between two urls are the same.
+        If left url is lower than right url, returns -1.
+        If left url is greater than right url, returns 1.
+        If left url equals right url, returns 0.
+    */
     if(url1->file != NULL && url2->file != NULL){
         int eq = strcmp(url1->file, url2->file);
         return eq;
@@ -478,6 +437,12 @@ int _sameFile(postgrurl* url1, postgrurl* url2){
 }
 
 int _equals(postgrurl* url1, postgrurl* url2){
+    /*
+        Checks if two urls are the same.
+        If left url is lower than right url, returns -1.
+        If left url is greater than right url, returns 1.
+        If left url equals right url, returns 0.
+    */
     if(url1->raw != NULL && url2->raw != NULL){
         int eq = strcmp(url1->raw, url2->raw); 
         return eq;
@@ -493,8 +458,10 @@ int _equals(postgrurl* url1, postgrurl* url2){
     }
 }
 
-
 int _cmp(postgrurl* url1, postgrurl* url2){
+    /*
+        Compares a pair of urls.
+    */
     int sameHost = _sameHost(url1, url2);
     if(sameHost == 0){
         int sameFile = _sameFile(url1, url2);
@@ -580,6 +547,9 @@ postgrurl* URLFromProtocolHostFile(char* protocol, char* host, char* file) {
 }
 
 postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
+    /*
+        Constructor based on a context and spec.
+    */
     //Check whether spec contains scheme or not
     int index;
     char delimiter[] = "://";
@@ -719,58 +689,20 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
 }
 
 
-//Functions
-Datum url_in(PG_FUNCTION_ARGS);
-Datum url_out(PG_FUNCTION_ARGS);
-Datum URL_constructor_str(PG_FUNCTION_ARGS);
-Datum URL_constructor1(PG_FUNCTION_ARGS);
-Datum URL_constructor2(PG_FUNCTION_ARGS);
-Datum URL_constructor5(PG_FUNCTION_ARGS);
-Datum url_rcv(PG_FUNCTION_ARGS);
-Datum url_send(PG_FUNCTION_ARGS);
-Datum equals(PG_FUNCTION_ARGS);
-Datum greater_than(PG_FUNCTION_ARGS);
-Datum less_than(PG_FUNCTION_ARGS);
-Datum greater_than_equals(PG_FUNCTION_ARGS);
-Datum less_than_equals(PG_FUNCTION_ARGS);
-Datum cmp(PG_FUNCTION_ARGS);
-Datum not_equals(PG_FUNCTION_ARGS);
-Datum getAuthority(PG_FUNCTION_ARGS);
-Datum getFile(PG_FUNCTION_ARGS);
-Datum getHost(PG_FUNCTION_ARGS);
-Datum getPort(PG_FUNCTION_ARGS);
-Datum getProtocol(PG_FUNCTION_ARGS);
-Datum getQuery(PG_FUNCTION_ARGS);
-Datum getRef(PG_FUNCTION_ARGS);
-Datum sameFile(PG_FUNCTION_ARGS);
-Datum sameHost(PG_FUNCTION_ARGS);
-Datum toString(PG_FUNCTION_ARGS);
+/*********************************************************************************
+* Postgres constructors                                                          *
+**********************************************************************************/
 
-/*
-Postgres type functions definition
-*/
+Datum URLPostgresFromString(PG_FUNCTION_ARGS);
+Datum URLPostgresFromProtocolHostPortFile(PG_FUNCTION_ARGS);
+Datum URLPostgresFromProtocolHostFile(PG_FUNCTION_ARGS);
+Datum URLPostgresFromContext(PG_FUNCTION_ARGS);
 
-PG_FUNCTION_INFO_V1(url_in);
-Datum url_in(PG_FUNCTION_ARGS){
-    char *rawstr = PG_GETARG_CSTRING(0);
-    postgrurl *url;
-    url = URLFromString(rawstr);
-    pfree(rawstr);
-    PG_RETURN_POINTER(url);
-    pfree(url);
-}
-
-PG_FUNCTION_INFO_V1(url_out);
-Datum url_out(PG_FUNCTION_ARGS){
-    postgrurl *url = PG_GETARG_POINTER(0);
-    char *output = url_to_string(url);
-    output = psprintf("%s", output);
-    PG_RETURN_CSTRING(output);
-    free(output);
-}
-
-PG_FUNCTION_INFO_V1(URL_constructor_str);
-Datum URL_constructor_str(PG_FUNCTION_ARGS){
+PG_FUNCTION_INFO_V1(URLPostgresFromString);
+Datum URLPostgresFromString(PG_FUNCTION_ARGS){
+    /*
+        Constructs an URL based on a raw string.
+    */
     char *rawstr = PG_GETARG_CSTRING(0);
     postgrurl *url;
     url = URLFromString(rawstr);
@@ -779,8 +711,11 @@ Datum URL_constructor_str(PG_FUNCTION_ARGS){
     //pfree(url);
 }
 
-PG_FUNCTION_INFO_V1(URL_constructor1);
-Datum URL_constructor1(PG_FUNCTION_ARGS){
+PG_FUNCTION_INFO_V1(URLPostgresFromProtocolHostPortFile);
+Datum URLPostgresFromProtocolHostPortFile(PG_FUNCTION_ARGS){
+    /*
+        Constructs an URL based on a protocol, host, port, and file.
+    */
     postgrurl * url;
     char *protocol = PG_GETARG_CSTRING(0);
     char *host = PG_GETARG_CSTRING(1);
@@ -795,8 +730,11 @@ Datum URL_constructor1(PG_FUNCTION_ARGS){
 }
 
 
-PG_FUNCTION_INFO_V1(URL_constructor2);
-Datum URL_constructor2(PG_FUNCTION_ARGS){
+PG_FUNCTION_INFO_V1(URLPostgresFromProtocolHostFile);
+Datum URLPostgresFromProtocolHostFile(PG_FUNCTION_ARGS){
+    /*
+        Constructs an URL based on protocol, host, and file.
+    */
     postgrurl *url;
     char *protocol = PG_GETARG_CSTRING(0);
     char *host = PG_GETARG_CSTRING(1);
@@ -809,8 +747,11 @@ Datum URL_constructor2(PG_FUNCTION_ARGS){
     //pfree(url);
 }
 
-PG_FUNCTION_INFO_V1(URL_constructor5);
-Datum URL_constructor5(PG_FUNCTION_ARGS) {
+PG_FUNCTION_INFO_V1(URLPostgresFromContext);
+Datum URLPostgresFromContext(PG_FUNCTION_ARGS) {
+    /*
+        Constructor that receives an existing url and a context.
+    */
     postgrurl *url;
     postgrurl *context = (postgrurl *) PG_GETARG_POINTER(0);
     char *spec = PG_GETARG_CSTRING(1);
@@ -820,9 +761,49 @@ Datum URL_constructor5(PG_FUNCTION_ARGS) {
     PG_RETURN_POINTER(url);
 }
 
+/*********************************************************************************
+* Postgres type functions                                                        *
+**********************************************************************************/
+
+
+Datum url_in(PG_FUNCTION_ARGS);
+Datum url_out(PG_FUNCTION_ARGS);
+Datum url_rcv(PG_FUNCTION_ARGS);
+Datum url_send(PG_FUNCTION_ARGS);
+
+PG_FUNCTION_INFO_V1(url_in);
+Datum url_in(PG_FUNCTION_ARGS){
+    /*
+        Native input function for custom data type.
+        The default way to create a postgrurl data cell will be by passing the raw string.
+    */
+    char *rawstr = PG_GETARG_CSTRING(0);
+    postgrurl *url;
+    url = URLFromString(rawstr);
+    pfree(rawstr);
+    PG_RETURN_POINTER(url);
+    pfree(url);
+}
+
+PG_FUNCTION_INFO_V1(url_out);
+Datum url_out(PG_FUNCTION_ARGS){
+    /*
+        Native output function for custom data type.
+        Will print the raw string representation of the saved postgrurl data cell.
+    */
+    postgrurl *url = PG_GETARG_POINTER(0);
+    char *output = url_to_string(url);
+    output = psprintf("%s", output);
+    PG_RETURN_CSTRING(output);
+    pfree(output);
+}
+
 //TODO: Implement function
 PG_FUNCTION_INFO_V1(url_rcv);
 Datum url_rcv(PG_FUNCTION_ARGS){
+    /*
+        Native rcv function for custom data type.
+    */
     char *str = PG_GETARG_CSTRING(0);
     PG_RETURN_NULL();
 }
@@ -830,17 +811,31 @@ Datum url_rcv(PG_FUNCTION_ARGS){
 //TODO: Implement function
 PG_FUNCTION_INFO_V1(url_send);
 Datum url_send(PG_FUNCTION_ARGS){
+    /*
+        Native send function for custom data type.
+    */
     char *str = PG_GETARG_CSTRING(0);
     PG_RETURN_NULL();
 }
 
-/*
-    Methods and predicates
-*/
+/*********************************************************************************
+* Postgres comparison functions                                                  *
+**********************************************************************************/
 
+Datum equals(PG_FUNCTION_ARGS);
+Datum greater_than(PG_FUNCTION_ARGS);
+Datum less_than(PG_FUNCTION_ARGS);
+Datum greater_than_equals(PG_FUNCTION_ARGS);
+Datum less_than_equals(PG_FUNCTION_ARGS);
+Datum cmp(PG_FUNCTION_ARGS);
+Datum not_equals(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(equals);
 Datum equals(PG_FUNCTION_ARGS){
+    /*
+        Compares two urls and determines if they are equal or not.
+        Only case when two URLs are equal is when the full raw string representation is the same.
+    */
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
     int eq = _cmp(url1, url2);
@@ -854,6 +849,16 @@ Datum equals(PG_FUNCTION_ARGS){
 
 PG_FUNCTION_INFO_V1(greater_than);
 Datum greater_than(PG_FUNCTION_ARGS){
+    /*
+        Compares two urls and determines if url1 is greater than url2.
+        A url A is considered greater than url B when:
+            - A and B share host, share file, but the rest of the url is different and string comparison returns positive number.
+                Example: http://test.com/about/file.txt?q=user2 vs http://test.com/about/file.txt?q=user
+            - A and B share host, and file string comparison returns positive number.
+                Example: http://test.com/about/file2.txt vs http://test.com/about/file.txt
+            - A and B host comparison returns positive number.
+                Example: http://test.com/ vs http://exam.com/
+    */
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
     int eq = _cmp(url1, url2);
@@ -867,6 +872,16 @@ Datum greater_than(PG_FUNCTION_ARGS){
 
 PG_FUNCTION_INFO_V1(less_than);
 Datum less_than(PG_FUNCTION_ARGS){
+    /*
+        Compares two urls and determines if url1 is less than url2.
+        A url A is considered less than url B when:
+            - A and B share host, share file, but the rest of the url is different and string comparison returns negative number.
+                Example: http://test.com/about/file.txt?q=user vs http://test.com/about/file.txt?q=user2
+            - A and B share host, and file string comparison returns negative number.
+                Example:  http://test.com/about/file.txt http://test.com/about/file2.txt
+            - A and B host comparison returns negative number.
+                Example:  http://exam.com/ vs http://test.com/
+    */
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
     int eq = _cmp(url1, url2);
@@ -880,6 +895,16 @@ Datum less_than(PG_FUNCTION_ARGS){
 
 PG_FUNCTION_INFO_V1(greater_than_equals);
 Datum greater_than_equals(PG_FUNCTION_ARGS){
+    /*
+        Compares two urls and determines if url1 is greater than or equal to url2.
+        A url A is considered greater than url B when:
+            - A and B share host, share file, but the rest of the url is different and string comparison returns positive number or 0.
+                Example: http://test.com/about/file.txt?q=user2 vs http://test.com/about/file.txt?q=user
+            - A and B share host, and file string comparison returns positive number or 0.
+                Example: http://test.com/about/file2.txt vs http://test.com/about/file.txt
+            - A and B host comparison returns positive number or 0.
+                Example: http://test.com/ vs http://exam.com/
+    */
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
     int eq = _cmp(url1, url2);
@@ -893,6 +918,16 @@ Datum greater_than_equals(PG_FUNCTION_ARGS){
 
 PG_FUNCTION_INFO_V1(less_than_equals);
 Datum less_than_equals(PG_FUNCTION_ARGS){
+    /*
+        Compares two urls and determines if url1 is less than url2.
+        A url A is considered less or equal than url B when:
+            - A and B share host, share file, but the rest of the url is different and string comparison returns negative number or 0.
+                Example: http://test.com/about/file.txt?q=user vs http://test.com/about/file.txt?q=user2
+            - A and B share host, and file string comparison returns negative number or 0.
+                Example:  http://test.com/about/file.txt http://test.com/about/file2.txt
+            - A and B host comparison returns negative number or 0.
+                Example:  http://exam.com/ vs http://test.com/
+    */
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
     int eq = _cmp(url1, url2);
@@ -906,6 +941,18 @@ Datum less_than_equals(PG_FUNCTION_ARGS){
 
 PG_FUNCTION_INFO_V1(cmp);
 Datum cmp(PG_FUNCTION_ARGS){
+    /*
+        Calls directly the compare function for urls.
+        Returns 0 when the raw representation of both urls is the same (same host, same file, and same rest of url).
+        Returns negative number when:
+            - A and B share host, share file, but the rest of the url is different and string comparison returns negative number.
+            - A and B share host, and file string comparison returns negative number.
+            - A and B have different host, and host string comparison returns negative number.
+        Returns a positive number when:
+            - A and B share host, share file, but the rest of the url is different and string comparison returns positive number.
+            - A and B share host, and file string comparison returns positive number.
+            - A and B have different host, and host string comparison returns positive number.
+    */
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
     int cmp = _cmp(url1, url2);
@@ -916,6 +963,10 @@ Datum cmp(PG_FUNCTION_ARGS){
 
 PG_FUNCTION_INFO_V1(not_equals);
 Datum not_equals(PG_FUNCTION_ARGS){
+    /*
+        Compares two urls and determines if they are not equal.
+        Only case when two URLs are equal is when the full raw string representation is the same.
+    */
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
     int eq = _equals(url1, url2);
@@ -927,157 +978,224 @@ Datum not_equals(PG_FUNCTION_ARGS){
     PG_RETURN_BOOL(true);
 }
 
+
+/*********************************************************************************
+* Postgres helper functions                                                      *
+**********************************************************************************/
+
+Datum getAuthority(PG_FUNCTION_ARGS);
+Datum getFile(PG_FUNCTION_ARGS);
+Datum getHost(PG_FUNCTION_ARGS);
+Datum getPort(PG_FUNCTION_ARGS);
+Datum getPath(PG_FUNCTION_ARGS);
+Datum getProtocol(PG_FUNCTION_ARGS);
+Datum getQuery(PG_FUNCTION_ARGS);
+Datum getRef(PG_FUNCTION_ARGS);
+Datum sameFile(PG_FUNCTION_ARGS);
+Datum sameHost(PG_FUNCTION_ARGS);
+Datum toString(PG_FUNCTION_ARGS);
+
 PG_FUNCTION_INFO_V1(getAuthority);
 Datum getAuthority(PG_FUNCTION_ARGS){
-    char *rawurl = (postgrurl *) PG_GETARG_CSTRING(0);
-    postgrurl *url;
-    url = string_to_url(rawurl);
+    /*
+        Gets the authority part of a url.
+    */
     PG_RETURN_NULL();
 }
 
-// // static int getDefaultPort(postgrurl *url){
-// PG_FUNCTION_INFO_V1(getDefaultPort);
-// Datum getDefaultPort(PG_FUNCTION_ARGS){
-//     return 0;
-// }
+
+PG_FUNCTION_INFO_V1(getDefaultPort);
+Datum getDefaultPort(PG_FUNCTION_ARGS){
+    /*
+        Returns the default port of the url scheme, if detected.
+    */
+    postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
+    if(url->defaultPort != NULL){
+        PG_RETURN_INT32(url->defaultPort);
+    }
+    else{
+        if(url->scheme != NULL){
+            int defaultPort = assignDefaultPort(url->scheme);
+            if(defaultPort == 0){
+                ereport(ERROR,(errmsg("No default port found for provided scheme.")));
+            }
+            else{
+                url->defaultPort = defaultPort;
+                PG_RETURN_INT32(defaultPort);
+            }
+        }
+        ereport(ERROR,(errmsg("No scheme provided in url. No default port.")));
+    }
+    pfree(url);
+}
 
 PG_FUNCTION_INFO_V1(getFile);
 Datum getFile(PG_FUNCTION_ARGS){
+    /*
+        Returns the file part of the url.
+    */
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
-    char * output = palloc(50*sizeof(char));
-
+    char * output;
     if(url->file != NULL){
+        output = (char *) palloc((strlen(url->file)+1)*sizeof(char));
         strcpy(output, url->file);
     }
     else{
         ereport(ERROR,
             (
-             errmsg("no file in the url")
+             errmsg("No file in the url.")
             )
         );
     }
     output = psprintf("%s", output);
     PG_RETURN_CSTRING(output);
     pfree(output);
+    pfree(url);
 }
 
 PG_FUNCTION_INFO_V1(getHost);
 Datum getHost(PG_FUNCTION_ARGS){
+    /*
+        Returns the host part of the url.
+    */
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
     char * output;
     if(url->host != NULL){
         output = (char *) palloc((strlen(url->host)+1)*sizeof(char));
-        strcat(output, url->host);
+        strcpy(output, url->host);
     }
     else{
         ereport(ERROR,
             (
-             errmsg("no host in the url")
+             errmsg("No host in the url")
             )
         );
     }
     output = psprintf("%s", output);
     PG_RETURN_CSTRING(output);
     pfree(output);
+    pfree(url);
 }
 
-// PG_FUNCTION_INFO_V1(getPath);
-// Datum getPath(PG_FUNCTION_ARGS){
-// // static char* getPath(postgrurl *url){
-    // everything after host (after the first /)
-//     return 'not implemented yet';
-// }
+PG_FUNCTION_INFO_V1(getPath);
+Datum getPath(PG_FUNCTION_ARGS){
+    /*
+        Returns the path part of the url.
+    */
+    PG_RETURN_NULL();
+}
 
 PG_FUNCTION_INFO_V1(getPort);
 Datum getPort(PG_FUNCTION_ARGS){
+    /*
+        Returns the port of the url, if exists.
+    */
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
     int output;
 
     if(url->port != NULL){
         output = url->port;
+        PG_RETURN_INT32(output);
     }
     else{
         ereport(ERROR,
             (
-             errmsg("no port in the url")
+             errmsg("No port in the url.")
             )
         );
     }
-    PG_RETURN_INT32(output);
     pfree(output);
+    pfree(url);
 }
 
 PG_FUNCTION_INFO_V1(getProtocol);
 Datum getProtocol(PG_FUNCTION_ARGS){
+    /*
+        Returns the protocol of the url, if exists.
+    */
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
     char * output;
     if(url->scheme != NULL){
-        output = palloc(strlen(url->scheme)*sizeof(char));
-        strcat(output, url->scheme);
+        output = (char *) palloc((strlen(url->scheme) +1)*sizeof(char));
+        strcpy(output, url->scheme);
     }
     else{
         ereport(ERROR,
             (
-             errmsg("no protocol in the url")
+             errmsg("No protocol in the url")
             )
         );
     }
     output = psprintf("%s", output);
     PG_RETURN_CSTRING(output);
     pfree(output);
+    pfree(url);
 }
 
 PG_FUNCTION_INFO_V1(getQuery);
 Datum getQuery(PG_FUNCTION_ARGS){
+    /*
+        Returns the query of the url, if exists.
+    */
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
-    char * output = palloc(50*sizeof(char));
-
+    char * output;
     if(url->query != NULL){
+        output = (char *) palloc((strlen(url->query)+1)*sizeof(char));
         strcpy(output, url->query);
     }
     else{
         ereport(ERROR,
             (
-             errmsg("no query in the url")
+             errmsg("No query in the url.")
             )
         );
     }
     output = psprintf("%s", output);
     PG_RETURN_CSTRING(output);
     pfree(output);
+    pfree(url);
 }
 
 PG_FUNCTION_INFO_V1(getRef);
 Datum getRef(PG_FUNCTION_ARGS){
+    /*
+        Returns the ref of the url, if exists.
+    */
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
-    char * output = palloc(50*sizeof(char));
+    char * output;
     char delim[] = "#";
-
+    output = (char *) palloc((strlen(url->raw)+1)*sizeof(char));
     output = strtok(url->raw, delim); //
     output = strtok(NULL, delim);
     if (output == NULL) {
         ereport(ERROR,
             (
-             errmsg("no reference in the url")
+             errmsg("No reference in the url")
             )
         );
     }
     else{
         printf("%s", output);
     }
-
     PG_RETURN_CSTRING(output);
     pfree(output);
+    pfree(delim);
+    pfree(url);
 }
 
 PG_FUNCTION_INFO_V1(getUserInfo);
 Datum getUserInfo(PG_FUNCTION_ARGS){
-// static char* getUserInfo(postgrurl *url){
-    return 'not implemented yet';
+    /*
+        Returns the user info through the url, if exists.
+    */
+    PG_RETURN_NULL();
 }
 
 PG_FUNCTION_INFO_V1(sameFile);
 Datum sameFile(PG_FUNCTION_ARGS){
+    /*
+        Returns true if file part of urls are equal.
+    */
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
     int eq = _sameFile(url1, url2);
@@ -1089,6 +1207,9 @@ Datum sameFile(PG_FUNCTION_ARGS){
 
 PG_FUNCTION_INFO_V1(sameHost);
 Datum sameHost(PG_FUNCTION_ARGS){
+    /*
+        Returns true if host part of urls are equal.
+    */
     postgrurl *url1 = (postgrurl *) PG_GETARG_POINTER(0);
     postgrurl *url2 = (postgrurl *) PG_GETARG_POINTER(1);
     int eq = _sameHost(url1, url2);
@@ -1100,9 +1221,12 @@ Datum sameHost(PG_FUNCTION_ARGS){
 
 PG_FUNCTION_INFO_V1(toString);
 Datum toString(PG_FUNCTION_ARGS){
+    /*
+        Parses url to raw string format.
+    */
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
     char *output = url_to_string(url);
     output = psprintf("%s", output);
     PG_RETURN_CSTRING(output); 
-    free(output);
+    pfree(output);
 }
