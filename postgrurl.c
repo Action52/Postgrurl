@@ -603,7 +603,7 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
         ignore_last = index == strlen(new_file)-1 ? 0 : 1;
 
         char delim[] = "/";
-        char ** file_part  = palloc(0 * sizeof(char));
+        char ** file_part  = palloc(sizeof(char));
         char *  ptr    = strtok (new_file, delim);
         int n_spaces = 0;
 
