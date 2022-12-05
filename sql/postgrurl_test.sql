@@ -92,6 +92,13 @@ SELECT * FROM testurl WHERE purl >= 'http://test.com'::postgrurl AND purl <= 'ht
 
 SET enable_seqscan TO on;
 ---------------------------
+-- Test receive and send, by dumping/importing data to/from binary
+---------------------------
+COPY testurl TO '/tmp/testurl.in' WITH BINARY;
+DELETE FROM testurl;
+COPY testurl FROM '/tmp/testurl.in' WITH BINARY;
+SELECT * FROM testurl;
+---------------------------
 -- Drop test data
 ---------------------------
 DROP INDEX IF EXISTS postgrurl_idx;

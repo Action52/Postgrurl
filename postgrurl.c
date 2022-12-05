@@ -570,7 +570,7 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
 
     // Case spec is path
     // Get file and query from spec
-    char * query_split = palloc((strlen(spec) + 1 )* sizeof(char));
+    char * query_split;
     char * query = palloc((strlen(spec) + 1 ) *sizeof(char));
 
     char * file = palloc(1024* sizeof(char));
@@ -648,6 +648,7 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
         strcpy(file, combined_file);
 
         free(file_part);
+        free(new_file);
 
         pfree(combined_file);
     }
@@ -752,12 +753,10 @@ Datum URLPostgresFromContext(PG_FUNCTION_ARGS) {
     /*
         Constructor that receives an existing url and a context.
     */
-    postgrurl *url;
     postgrurl *context = (postgrurl *) PG_GETARG_POINTER(0);
     char *spec = PG_GETARG_CSTRING(1);
 
-    url = (postgrurl *) palloc(sizeof(postgrurl));
-    url = URLFromContextAndSpec(context, spec);
+    postgrurl *url = URLFromContextAndSpec(context, spec);
     PG_RETURN_POINTER(url);
 }
 
@@ -768,7 +767,7 @@ Datum URLPostgresFromContext(PG_FUNCTION_ARGS) {
 
 Datum url_in(PG_FUNCTION_ARGS);
 Datum url_out(PG_FUNCTION_ARGS);
-Datum url_rcv(PG_FUNCTION_ARGS);
+Datum url_recv(PG_FUNCTION_ARGS);
 Datum url_send(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(url_in);
@@ -798,24 +797,33 @@ Datum url_out(PG_FUNCTION_ARGS){
     pfree(output);
 }
 
-//TODO: Implement function
-PG_FUNCTION_INFO_V1(url_rcv);
-Datum url_rcv(PG_FUNCTION_ARGS){
+PG_FUNCTION_INFO_V1(url_recv);
+Datum url_recv(PG_FUNCTION_ARGS){
     /*
         Native rcv function for custom data type.
     */
-    char *str = PG_GETARG_CSTRING(0);
-    PG_RETURN_NULL();
+    StringInfo buf = (StringInfo) PG_GETARG_POINTER(0);
+    const char *str = pq_getmsgstring(buf);
+    pq_getmsgend(buf);
+    
+    postgrurl *url;
+    url = URLFromString(str);
+
+    PG_RETURN_POINTER(url);
 }
 
-//TODO: Implement function
 PG_FUNCTION_INFO_V1(url_send);
 Datum url_send(PG_FUNCTION_ARGS){
     /*
         Native send function for custom data type.
     */
-    char *str = PG_GETARG_CSTRING(0);
-    PG_RETURN_NULL();
+    postgrurl *url = PG_GETARG_POINTER(0);
+    StringInfoData buf;
+
+    pq_begintypsend(&buf);
+    pq_sendstring(&buf, url_to_string(url));
+
+    PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
 }
 
 /*********************************************************************************
