@@ -570,7 +570,7 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
 
     // Case spec is path
     // Get file and query from spec
-    char * query_split = palloc((strlen(spec) + 1 )* sizeof(char));
+    char * query_split;
     char * query = palloc((strlen(spec) + 1 ) *sizeof(char));
 
     char * file = palloc(1024* sizeof(char));
@@ -648,6 +648,7 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
         strcpy(file, combined_file);
 
         free(file_part);
+        free(new_file);
 
         pfree(combined_file);
     }
@@ -752,12 +753,10 @@ Datum URLPostgresFromContext(PG_FUNCTION_ARGS) {
     /*
         Constructor that receives an existing url and a context.
     */
-    postgrurl *url;
     postgrurl *context = (postgrurl *) PG_GETARG_POINTER(0);
     char *spec = PG_GETARG_CSTRING(1);
 
-    url = (postgrurl *) palloc(sizeof(postgrurl));
-    url = URLFromContextAndSpec(context, spec);
+    postgrurl *url = URLFromContextAndSpec(context, spec);
     PG_RETURN_POINTER(url);
 }
 
