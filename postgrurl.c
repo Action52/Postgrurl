@@ -572,15 +572,11 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
     // Get file and query from spec
     char * query_split;
     char * query = palloc((strlen(spec) + 1 ) *sizeof(char));
-
     char * file = palloc(1024* sizeof(char));
 
     if(strstr(spec,"?") != NULL) {
         query_split = strtok(spec, "?");
         strcpy(file, query_split);
-        char * raw = palloc(1024 * sizeof(char));
-        strcpy(raw, "");
-
 
         query_split = strtok(NULL, "?");
         strcpy(query, "?");
@@ -594,7 +590,8 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
 
     // Append if spec is not absoulte path otherwise overwrite context path
     if (spec[0] != '/') {
-        char * new_file = strdup(context->file);
+        char * new_file = palloc((strlen(context->file)+1)*sizeof(char));
+        new_file = strcpy(new_file, context->file);
 
         // Determine which part of the file need to be replaced
         char * last;
@@ -606,14 +603,14 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
         ignore_last = index == strlen(new_file)-1 ? 0 : 1;
 
         char delim[] = "/";
-        char ** file_part  = NULL;
+        char ** file_part  = palloc(0 * sizeof(char));
         char *  ptr    = strtok (new_file, delim);
         int n_spaces = 0;
 
         // Split string token into array, taken from:
         // https://stackoverflow.com/questions/11198604/c-split-string-into-an-array-of-strings
         while (ptr) {
-            file_part = realloc (file_part, sizeof (char*) * ++n_spaces);
+            file_part = repalloc (file_part, sizeof (char*) * ++n_spaces);
 
             if (file_part == NULL)
                 exit (-1);
@@ -627,7 +624,7 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
         }
 
         // Add null
-        file_part = realloc (file_part, sizeof (char*) * (n_spaces+1));
+        file_part = repalloc (file_part, sizeof (char*) * (n_spaces+1));
         file_part[n_spaces] = 0;
 
         // Combine file and new path
@@ -647,9 +644,8 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
         strcat(combined_file, file);
         strcpy(file, combined_file);
 
-        free(file_part);
-        free(new_file);
-
+        pfree(file_part);
+        pfree(new_file);
         pfree(combined_file);
     }
 
