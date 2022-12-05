@@ -804,8 +804,14 @@ Datum url_rcv(PG_FUNCTION_ARGS){
     /*
         Native rcv function for custom data type.
     */
-    char *str = PG_GETARG_CSTRING(0);
-    PG_RETURN_NULL();
+    StringInfo buf = (StringInfo) PG_GETARG_POINTER(0);
+    const char *str = pg_getmsgstring(buf);
+    pq_getmsgend(buf);
+    
+    postgrurl *url;
+    url = URLFromString(str);
+
+    PG_RETURN_POINTER(url);
 }
 
 //TODO: Implement function
@@ -814,8 +820,13 @@ Datum url_send(PG_FUNCTION_ARGS){
     /*
         Native send function for custom data type.
     */
-    char *str = PG_GETARG_CSTRING(0);
-    PG_RETURN_NULL();
+    postgrurl *url = PG_GETARG_POINTER(0);
+    StringInfoData buf;
+
+    pg_begintypesned(&buf);
+    pg_sendstring(&buf, url_to_string(url));
+
+    PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
 }
 
 /*********************************************************************************
