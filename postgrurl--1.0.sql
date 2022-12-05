@@ -23,6 +23,16 @@ RETURNS cstring
 AS '$libdir/postgrurl'
 LANGUAGE C IMMUTABLE STRICT;
 
+CREATE OR REPLACE FUNCTION url_recv(internal)
+RETURNS postgrurl
+AS '$libdir/postgrurl'
+LANGUAGE C IMMUTABLE STRICT;
+
+CREATE OR REPLACE FUNCTION url_send(postgrurl)
+RETURNS bytea
+AS '$libdir/postgrurl'
+LANGUAGE C IMMUTABLE STRICT;
+
 /********************************************************************************
 *  Data type creation                                                           *
 ********************************************************************************/
@@ -30,8 +40,8 @@ LANGUAGE C IMMUTABLE STRICT;
 CREATE TYPE postgrurl(
     INPUT           =   url_in,
     OUTPUT          =   url_out,
---    RECEIVE     =   url_rcv,
---    SEND        =   url_send,
+    RECEIVE         =   url_recv,
+    SEND            =   url_send,
     INTERNALLENGTH  =   1024
 );
 

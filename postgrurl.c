@@ -768,7 +768,7 @@ Datum URLPostgresFromContext(PG_FUNCTION_ARGS) {
 
 Datum url_in(PG_FUNCTION_ARGS);
 Datum url_out(PG_FUNCTION_ARGS);
-Datum url_rcv(PG_FUNCTION_ARGS);
+Datum url_recv(PG_FUNCTION_ARGS);
 Datum url_send(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(url_in);
@@ -798,14 +798,13 @@ Datum url_out(PG_FUNCTION_ARGS){
     pfree(output);
 }
 
-//TODO: Implement function
-PG_FUNCTION_INFO_V1(url_rcv);
-Datum url_rcv(PG_FUNCTION_ARGS){
+PG_FUNCTION_INFO_V1(url_recv);
+Datum url_recv(PG_FUNCTION_ARGS){
     /*
         Native rcv function for custom data type.
     */
     StringInfo buf = (StringInfo) PG_GETARG_POINTER(0);
-    const char *str = pg_getmsgstring(buf);
+    const char *str = pq_getmsgstring(buf);
     pq_getmsgend(buf);
     
     postgrurl *url;
@@ -814,7 +813,6 @@ Datum url_rcv(PG_FUNCTION_ARGS){
     PG_RETURN_POINTER(url);
 }
 
-//TODO: Implement function
 PG_FUNCTION_INFO_V1(url_send);
 Datum url_send(PG_FUNCTION_ARGS){
     /*
@@ -823,8 +821,8 @@ Datum url_send(PG_FUNCTION_ARGS){
     postgrurl *url = PG_GETARG_POINTER(0);
     StringInfoData buf;
 
-    pg_begintypesned(&buf);
-    pg_sendstring(&buf, url_to_string(url));
+    pq_begintypsend(&buf);
+    pq_sendstring(&buf, url_to_string(url));
 
     PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
 }
