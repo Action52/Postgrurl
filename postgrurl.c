@@ -61,7 +61,46 @@ int assignDefaultPort(const char *protocol){
 	}
     else if(strcmp(protocol, "https") == 0){
 		defaultPort = 443;
-	}else{
+
+  }else if(strcmp(protocol, "ftp") == 0){
+    defaultPort = 21;
+
+  }else if(strcmp(protocol, "sftp") == 0){
+    defaultPort = 22;
+  }
+  else if(strcmp(protocol, "gopher") == 0){
+    defaultPort = 70;
+  }
+
+  else if(strcmp(protocol, "imap") == 0){
+    defaultPort = 143;
+  }
+
+  else if(strcmp(protocol, "ldap") == 0){
+    defaultPort = 389;
+  }
+
+  else if(strcmp(protocol, "nfs") == 0){
+    defaultPort = 2049;
+  }
+
+  else if(strcmp(protocol, "nntp") == 0){
+    defaultPort = 119;
+  }
+
+  else if(strcmp(protocol, "pop") == 0){
+    defaultPort = 110;
+  }
+
+  else if(strcmp(protocol, "smtp") == 0){
+    defaultPort = 25;
+  }
+
+  else if(strcmp(protocol, "telnet") == 0){
+    defaultPort = 23;
+  }
+
+  else{
 		defaultPort = 0;
 	}
 	return defaultPort;
@@ -79,14 +118,14 @@ postgrurl* string_to_url(char* str){
 	char *str_copy;
 	char *value;
 	char *query_split;
-    char string_port[5];
+  char string_port[5];
 
 	//query parts
 	char *scheme;
-    char *host;
+  char *host;
 	char *file;
-    char *query;
-    char *raw;
+  char *query;
+  char *raw;
 	int port = 0;
 
 	//check variables
@@ -94,7 +133,7 @@ postgrurl* string_to_url(char* str){
 	int with_port;
 	int with_file;
 	int with_query;
-    int end_slash=0;
+  int end_slash=0;
 
 
 	//memory allocation
@@ -191,7 +230,7 @@ postgrurl* string_to_url(char* str){
 							strcpy(query+strlen(query),"?");
 							strcpy(query+strlen(query), query_split);
 
-						} 
+						}
                         else{
 							// host:port
 							port = atoi(value);
@@ -203,7 +242,7 @@ postgrurl* string_to_url(char* str){
                         if(value[0]=='?'){
 							// host/file/?query
 							strcpy(query+strlen(query),value);
-						} 
+						}
                         else {
 							// host/file?query
 							query_split = strtok(value, "?");
@@ -261,7 +300,7 @@ postgrurl* string_to_url(char* str){
 						}
 
 					}
-                    else{	
+                    else{
                         // protocol://host/file
                         strcpy(file+strlen(file), value);
 						strcpy(file+strlen(file),"/");
@@ -272,7 +311,7 @@ postgrurl* string_to_url(char* str){
 				//only possibilities left are file and query
                 //check if remaining part contains a query if not everthing belongs to
                 // the file part
-                if(strstr(value,"?") != NULL){	
+                if(strstr(value,"?") != NULL){
                     // portocol://host:port/file?query
                     if(value[0]=='?'){
 						// portocol://host:port/file/?query
@@ -288,7 +327,6 @@ postgrurl* string_to_url(char* str){
 
 						query_split = strtok(NULL, "?");
 						strcpy(query+strlen(query),"?");
-						printf("Bis hier %s \n",query_split);
 						strcpy(query+strlen(query), query_split);
 					}
 				}
@@ -333,7 +371,7 @@ postgrurl* string_to_url(char* str){
         url->port = port;
         strcpy(raw+strlen(raw), ":");
         strcpy(raw+strlen(raw),string_port);
-    } 
+    }
     else if(with_protocol!=0){
         //protocol but no port .-> assign default port
         url->defaultPort = assignDefaultPort(scheme);
@@ -444,7 +482,7 @@ int _equals(postgrurl* url1, postgrurl* url2){
         If left url equals right url, returns 0.
     */
     if(url1->raw != NULL && url2->raw != NULL){
-        int eq = strcmp(url1->raw, url2->raw); 
+        int eq = strcmp(url1->raw, url2->raw);
         return eq;
     }
     else if(url1->raw == NULL && url2->raw != NULL){
@@ -1227,6 +1265,6 @@ Datum toString(PG_FUNCTION_ARGS){
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
     char *output = url_to_string(url);
     output = psprintf("%s", output);
-    PG_RETURN_CSTRING(output); 
+    PG_RETURN_CSTRING(output);
     pfree(output);
 }
