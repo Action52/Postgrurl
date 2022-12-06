@@ -19,6 +19,9 @@
 #include <err.h>
 #include <string.h>
 #include <assert.h>
+#include <regex.h>
+
+#define MAX_ERROR_MSG 0x1000
 
 PG_MODULE_MAGIC;
 
@@ -40,6 +43,68 @@ typedef struct postgrurl postgrurl;
 /*********************************************************************************
 * Helper functions                                                               *
 **********************************************************************************/
+
+void slice(const char *str, char *result, size_t start, size_t end)
+{
+    strncpy(result, str + start, end - start);
+}
+
+static int compile_regex (regex_t * r, const char * regex_text)
+{
+    int status = regcomp (r, regex_text, REG_EXTENDED);
+    if (status != 0) {
+	   char error_message[MAX_ERROR_MSG];
+      regerror (status, r, error_message, MAX_ERROR_MSG);
+      printf ("Regex error compiling '%s': %s\n",
+               regex_text, error_message);
+      return 1;
+    }
+    return 0;
+}
+
+static int match_regex (regex_t * r, const char * to_match, int idxs_start[], int idxs_end[], int* n_subchars)
+{
+    /* "P" is a pointer into the string which points to the end of the
+       previous match. */
+    const char * p = to_match;
+    /* "N_matches" is the maximum number of matches allowed. */
+    const int n_matches = 1; 
+    /* "M" contains the matches found. */
+    regmatch_t m[1];// only include the match of the whole pattern
+
+   printf ("%s\n", to_match);
+
+    while (1) {
+        int i = 0;
+        int nomatch = regexec (r, p, n_matches, m, 0);
+        if (nomatch) {
+            // printf ("No more matches.\n");
+            return nomatch;
+        }
+        for (i = 0; i < n_matches; i++) {
+            int start;
+            int finish;
+            if (m[i].rm_so == -1) {
+               break;
+            }
+            start = m[i].rm_so + (p - to_match);
+            finish = m[i].rm_eo + (p - to_match);
+            idxs_start[*n_subchars] = start;
+            idxs_end[*n_subchars] = finish;
+            // if (i == 0) {
+            //     printf ("$& is ");
+            // }
+            // else {
+            //     printf ("$%d is ", i);
+            // }
+            // printf ("'%.*s' (bytes %d:%d)\n", (finish - start),
+            //         to_match + start, start, finish);
+        }
+        p += m[0].rm_eo;
+        *n_subchars = *n_subchars+1;
+    }
+    return 0;
+}
 
 int digits_only(const char *s){
     /*
@@ -1042,7 +1107,26 @@ Datum getAuthority(PG_FUNCTION_ARGS){
     /*
         Gets the authority part of a url.
     */
-    PG_RETURN_NULL();
+    postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
+    char * output = (char *) palloc((strlen(url->raw)+1)*sizeof(char));
+    char * port_str = (char *) palloc((strlen(url->raw)+1)*sizeof(char));;
+
+    if (url->host != NULL){
+        strcpy(output, "");
+        strcat(output, url->host);
+    }
+    else{
+        ereport(ERROR,(errmsg("No host in the url")));
+    }
+    if (url->port != NULL){
+        strcat(output, ":");
+        sprintf(port_str, "%d", url->port);
+        strcat(output, port_str);
+    }
+    PG_RETURN_CSTRING(output);
+    pfree(output);
+    pfree(url);
+    pfree(port_str);
 }
 
 
@@ -1124,7 +1208,41 @@ Datum getPath(PG_FUNCTION_ARGS){
     /*
         Returns the path part of the url.
     */
-    PG_RETURN_NULL();
+
+    postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
+    char * output;
+    output = (char *) palloc((strlen(url->raw)+1)*sizeof(char));
+    char path_pattern[] = "([^/]/{1}[a-zA-Z0-9\\-\\_.]{1,}){1,}";
+    int n_subchars = 0;
+    int idxs_start[10];
+    int idxs_end[10];
+    regex_t r;
+
+    compile_regex(& r, path_pattern);
+    match_regex(& r, url->raw, idxs_start, idxs_end, &n_subchars);
+    // ereport(ERROR,(errmsg("n_subchars: %d", n_subchars)));
+    if (n_subchars > 0){ // if path match exists
+        if (n_subchars > 1){ // if it's more than one
+            ereport(ERROR,
+                (
+                errmsg("Only a single instance of path is allowed in a URL")
+                )
+            );
+        }
+        slice(url->raw, output, idxs_start[0]+1, idxs_end[0]);
+        printf("path: %s\n", output);
+    }
+    else {
+        ereport(ERROR,
+            (
+             errmsg("No path in the url")
+            )
+        );
+    }
+    PG_RETURN_CSTRING(output);
+    pfree(output);
+    pfree(path_pattern);
+    pfree(url);
 }
 
 PG_FUNCTION_INFO_V1(getPort);

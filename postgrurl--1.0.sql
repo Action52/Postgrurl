@@ -272,4 +272,8 @@ RETURNS cstring
 AS '$libdir/postgrurl', 'getUserInfo'
 LANGUAGE C IMMUTABLE STRICT;
 
+CREATE OR REPLACE FUNCTION getPath(postgrurl)
+RETURNS cstring
+AS '$libdir/postgrurl', 'getPath'
+LANGUAGE C IMMUTABLE STRICT;
 
