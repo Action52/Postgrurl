@@ -112,7 +112,7 @@ postgrurl* string_to_url(char* str){
     */
 	int ind = 0;
 	char delim[] = "://";
-	postgrurl* url = malloc(sizeof(postgrurl));
+	postgrurl* url = palloc(sizeof(postgrurl));
 
     //helper variables
 	char *str_copy;
@@ -584,18 +584,20 @@ postgrurl* URLFromProtocolHostFile(char* protocol, char* host, char* file) {
     return url;
 }
 
-postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
+postgrurl* URLFromContextAndSpec(postgrurl* context, char* spec) {
     /*
         Constructor based on a context and spec.
     */
+
     //Check whether spec contains scheme or not
     int index;
-    char delimiter[] = "://";
+    char delimiter[3] = "://";
     char *pos = strstr(spec, delimiter);
     index = pos ? pos - spec : -1;
+
     if (index != -1 || index > 0) {
         // Convert spec to URL
-        postgrurl* spec_url;
+        postgrurl* spec_url = (postgrurl*) palloc(sizeof(postgrurl));
         spec_url = string_to_url(spec);
 
         // Spec is Absolute URL
@@ -603,14 +605,51 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
             return spec_url;
         }
 
-        return context;
+        pfree(spec_url);
+
+        // Transform new raw value & copy context to url
+        char * raw = palloc(1024 * sizeof(char));
+        postgrurl* url = (postgrurl*) palloc(sizeof(postgrurl));
+
+        strcpy(raw, "");
+
+        if (context->scheme) {
+            url->scheme = strdup(context->scheme);
+            strcat(raw, url->scheme);
+            strcat(raw, "://");
+        }
+
+        if (context->host) {
+            url->host = strdup(context->host);
+            strcat(raw, url->host);
+        }
+
+        if(context->port) {
+            url->port = context->port;
+            strcat(raw, ":");
+            strcat(raw, url->port);
+        }
+
+        if(context->file) {
+            url->file = strdup(context->file);
+            strcat(raw, url->file);
+        }
+
+        if(context->query) {
+            url->query = strdup(context->query);
+            strcat(raw, url->query);
+        }
+        url->raw = strdup(raw);
+        pfree(raw);
+            
+        return url;
     }
 
     // Case spec is path
     // Get file and query from spec
     char * query_split;
-    char * query = palloc((strlen(spec) + 1 ) *sizeof(char));
-    char * file = palloc(1024* sizeof(char));
+    char * query = (char *) palloc((strlen(spec) + 1 ) *sizeof(char));
+    char * file = (char *)  palloc(1024* sizeof(char));
 
     if(strstr(spec,"?") != NULL) {
         query_split = strtok(spec, "?");
@@ -688,39 +727,44 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, const char* spec) {
     }
 
     // Transform new raw value
-    char * raw = palloc(1024 * sizeof(char));
+    char * raw = (char *)  palloc(1024 * sizeof(char));
+    postgrurl* url = (postgrurl*) palloc(sizeof(postgrurl));
+
     strcpy(raw, "");
 
     if (context->scheme) {
-        strcat(raw, context->scheme);
+        url->scheme = strdup(context->scheme);
+        strcat(raw, url->scheme);
         strcat(raw, "://");
     }
 
     if (context->host) {
-        strcat(raw, context->host);
+        url->host = strdup(context->host);
+        strcat(raw, url->host);
     }
 
     if(context->port) {
+        url->port = context->port;
         strcat(raw, ":");
-        strcat(raw, context->port);
+        strcat(raw, url->port);
     }
 
     if(file) {
-        context->file = strdup(file);
+        url->file = strdup(file);
         strcat(raw, file);
     }
 
     if(query) {
-        context->query = strdup(query);
+        url->query = strdup(query);
         strcat(raw, query);
     }
-    context->raw = strdup(raw);
+    url->raw = strdup(raw);
 
     pfree(query);
     pfree(raw);
     pfree(file);
 
-    return context;
+    return url;
 }
 
 
@@ -791,6 +835,9 @@ Datum URLPostgresFromContext(PG_FUNCTION_ARGS) {
     char *spec = PG_GETARG_CSTRING(1);
 
     postgrurl *url = URLFromContextAndSpec(context, spec);
+    pfree(spec);
+    pfree(context);
+
     PG_RETURN_POINTER(url);
 }
 
