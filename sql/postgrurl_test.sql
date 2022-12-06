@@ -8,13 +8,12 @@ CREATE EXTENSION postgrurl;
 SELECT URL('http', 'test.com', '/about/file.txt');
 SELECT URL('http', 'test.com', 10, '/about/file.txt');
 SELECT URL('http://test.com');
-SELECT URL('http://test.com/path/subpath'::postgrurl, 'newsubpath');
 SELECT URL('http://test.com/path/subpath/'::postgrurl, 'http://');
 SELECT URL('http://test.com/path?query=6'::postgrurl, 'https://www.google.com/newpath');
 SELECT URL('http://test.com/path?query=6'::postgrurl, 'http://test.com');
 SELECT URL('http://test.com/path/subpath?query=6'::postgrurl, '/newpath');
+SELECT URL('http://test.com/path/subpath'::postgrurl, 'newsubpath');
 SELECT URL('http://test.com/path/subpath/'::postgrurl, 'subsubpath');
-
 ---------------------------
 -- Test table creation
 ---------------------------
