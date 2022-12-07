@@ -177,7 +177,7 @@ postgrurl* string_to_url(char* str){
     */
 	int ind = 0;
 	char delim[] = "://";
-	postgrurl* url = palloc(sizeof(postgrurl));
+	postgrurl* url = malloc(sizeof(postgrurl));
 
     //helper variables
 	char *str_copy;
@@ -202,20 +202,18 @@ postgrurl* string_to_url(char* str){
 
 
 	//memory allocation
-	scheme = palloc(sizeof(char) * (strlen(str)+1));
+	scheme = malloc(sizeof(char) * (strlen(str)+1));
 	strcpy(scheme,"");
-	host = palloc(sizeof(char) * (strlen(str)+1));
+	host = malloc(sizeof(char) * (strlen(str)+1));
     strcpy(host,"");
-	file = palloc(sizeof(char) * (strlen(str)+1));
+	file = malloc(sizeof(char) * (strlen(str)+1));
 	strcpy(file,"");
-	query = palloc(sizeof(char) * (strlen(str)+1));
+	query = malloc(sizeof(char) * (strlen(str)+1));
 	strcpy(query,"");
-    raw = palloc(sizeof(char) * (strlen(str)+1));
+    raw = malloc(sizeof(char) * (strlen(str)+1));
 	strcpy(raw,"");
-	str_copy = palloc(sizeof(char) * (strlen(str)+1));
+	str_copy = malloc(sizeof(char) * (strlen(str)+1));
 	strcpy(str_copy,str);
-
-	query_split = palloc(sizeof(char) * (strlen(str)+1));
 
 	//determine which parts are contained in the URL
 	with_protocol = strstr(str,"://");
@@ -414,7 +412,7 @@ postgrurl* string_to_url(char* str){
     //Assign the components that were present in the URL string to URL struct
     // and create the raw string
     if(with_protocol!=0){
-		url->scheme = palloc(strlen(scheme) + 1);
+		url->scheme = malloc(strlen(scheme) + 1);
 		strcpy(url->scheme, scheme);
         strcpy(raw, scheme);
         strcpy(raw+strlen(raw), "://");
@@ -424,7 +422,7 @@ postgrurl* string_to_url(char* str){
     }
 
 	if(strcmp(host,"")!=0){
-		url->host = palloc(strlen(host) + 1);
+		url->host = malloc(strlen(host) + 1);
 		strcpy(url->host,host);
 		strcpy(raw+strlen(raw), host);
 	}
@@ -443,7 +441,7 @@ postgrurl* string_to_url(char* str){
     }
 
 	if(with_file!=0){
-		url->file = palloc(strlen(file) + 1);
+		url->file = malloc(strlen(file) + 1);
 		strcpy(url->file,file);
         strcpy(raw+strlen(raw), file);
 	}
@@ -452,7 +450,7 @@ postgrurl* string_to_url(char* str){
     }
 
 	if(with_query!=0){
-		url->query = palloc(strlen(query) + 1);
+		url->query = malloc(strlen(query) + 1);
 		strcpy(url->query,query);
         strcpy(raw+strlen(raw), query);
 	}
@@ -461,19 +459,19 @@ postgrurl* string_to_url(char* str){
     }
 
     //Assign raw string to struct
-    url->raw = palloc(strlen(raw) + 1);
+    url->raw = malloc(strlen(raw) + 1);
     strcpy(url->raw, raw);
 
 	//free memory
-	pfree(scheme);
-	pfree(host);
-	pfree(file);
-	pfree(query);
-    pfree(raw);
-	pfree(str_copy);
+	free(scheme);
+	free(host);
+	free(file);
+	free(query);
+    free(raw);
+	free(str_copy);
 
     //Problem
-	//pfree(query_split);
+	//free(query_split);
 
 	return url;
 
@@ -676,13 +674,13 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, char* spec) {
         }
 
         // Free spec url immediately
-        pfree(spec_url);
+        free(spec_url);
 
         // Transform new raw value & copy context to url
         char * raw = palloc(1024 * sizeof(char));
         strcpy(raw, context->raw);
 
-        pfree(context);
+        free(context);
             
         postgrurl * url = string_to_url(raw);
         pfree(raw);
@@ -786,7 +784,7 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, char* spec) {
     pfree(query);
     pfree(raw);
     pfree(file);
-    pfree(context);
+    free(context);
 
     return url;
 }
