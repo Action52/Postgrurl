@@ -68,7 +68,7 @@ static int match_regex (regex_t * r, const char * to_match, int idxs_start[], in
        previous match. */
     const char * p = to_match;
     /* "N_matches" is the maximum number of matches allowed. */
-    const int n_matches = 1; 
+    const int n_matches = 1;
     /* "M" contains the matches found. */
     regmatch_t m[1];// only include the match of the whole pattern
 
@@ -214,6 +214,8 @@ postgrurl* string_to_url(char* str){
 	strcpy(raw,"");
 	str_copy = malloc(sizeof(char) * (strlen(str)+1));
 	strcpy(str_copy,str);
+
+  port = 0;
 
 	//determine which parts are contained in the URL
 	with_protocol = strstr(str,"://");
@@ -438,6 +440,10 @@ postgrurl* string_to_url(char* str){
     else if(with_protocol!=0){
         //protocol but no port .-> assign default port
         url->defaultPort = assignDefaultPort(scheme);
+        url->port = port;
+    }else{
+      url->port = port;
+      url->defaultPort = port;
     }
 
 	if(with_file!=0){
@@ -681,7 +687,7 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, char* spec) {
         strcpy(raw, context->raw);
 
         free(context);
-            
+
         postgrurl * url = string_to_url(raw);
         pfree(raw);
 
@@ -777,7 +783,13 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, char* spec) {
     char * raw = palloc(raw_size);
 
     // Ignore if the query does not contains any port
-    snprintf(raw, raw_size, "%s://%s/%s%s", context->scheme, context->host, file, query);
+    if(context->port == 0){
+      snprintf(raw, raw_size, "%s://%s/%s%s", context->scheme, context->host, file, query);
+    } else{
+        snprintf(raw, raw_size, "%s://%s:%d/%s%s", context->scheme, context->host,context->port ,file, query);
+    }
+
+
 
     postgrurl * url = string_to_url(raw);
 
@@ -906,7 +918,7 @@ Datum url_recv(PG_FUNCTION_ARGS){
     StringInfo buf = (StringInfo) PG_GETARG_POINTER(0);
     const char *str = pq_getmsgstring(buf);
     pq_getmsgend(buf);
-    
+
     postgrurl *url;
     url = URLFromString(str);
 
