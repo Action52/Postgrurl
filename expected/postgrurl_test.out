@@ -1,91 +1,391 @@
+---------------------------
+-- Test create extension
+---------------------------
 CREATE EXTENSION postgrurl;
+---------------------------
+-- Test constructors
+---------------------------
+SELECT URL('http', 'test.com', '/about/file.txt');
+               url               
+---------------------------------
+ http://test.com//about/file.txt
+(1 row)
+
+SELECT URL('http', 'test.com', 10, '/about/file.txt');
+                url                 
+------------------------------------
+ http://test.com:10//about/file.txt
+(1 row)
+
+SELECT URL('http://test.com');
+       url       
+-----------------
+ http://test.com
+(1 row)
+
+SELECT URL('http://test.com/path/subpath/'::postgrurl, 'http://');
+              url              
+-------------------------------
+ http://test.com/path/subpath/
+(1 row)
+
+SELECT URL('http://test.com/path?query=6'::postgrurl, 'https://www.google.com/newpath');
+              url               
+--------------------------------
+ https://www.google.com/newpath
+(1 row)
+
+SELECT URL('http://test.com/path?query=6'::postgrurl, 'http://test.com');
+       url       
+-----------------
+ http://test.com
+(1 row)
+
+SELECT URL('http://test.com/path/subpath?query=6'::postgrurl, '/newpath');
+           url           
+-------------------------
+ http://test.com/newpath
+(1 row)
+
+SELECT URL('http://test.com/path/subpath'::postgrurl, 'newsubpath');
+               url               
+---------------------------------
+ http://test.com/path/newsubpath
+(1 row)
+
+SELECT URL('http://test.com/path/subpath/'::postgrurl, 'subsubpath');
+                   url                   
+-----------------------------------------
+ http://test.com/path/subpath/subsubpath
+(1 row)
+
+---------------------------
+-- Test table creation
+---------------------------
 CREATE TABLE testurl(id int, purl postgrurl);
 INSERT INTO testurl(id, purl) VALUES(1, 'test');
 INSERT INTO testurl(id, purl) VALUES(2, 'http://test.com');
 INSERT INTO testurl(id, purl) VALUES(3, 'http://test.com/file.txt');
 INSERT INTO testurl(id, purl) VALUES(4, 'http://test.com/random/path/');
 INSERT INTO testurl(id, purl) VALUES(5, 'http://test.com:8162');
---INSERT INTO testurl(id, purl) VALUES(6, 'http://test.com:8239/hola?query=6');
+INSERT INTO testurl(id, purl) VALUES(6, URL('http', 'test.com', 10, 'about/file.txt'));
+INSERT INTO testurl(id, purl) VALUES(7, URL('http', 'test.com', 'about/file.txt'));
+INSERT INTO testurl(id, purl) VALUES(8, URL('http', 'facebook.com', 'about/file.txt'));
+INSERT INTO testurl(id, purl) VALUES(9, URL('http', 'facebook.com', 'profile'));
+INSERT INTO testurl(id, purl) VALUES(10, 'https://facebook.com:8888/random/path');
+---------------------------
+-- Test table printing (url_out)
+---------------------------
 SELECT * FROM testurl;
- id |                                          purl                                           
-----+-----------------------------------------------------------------------------------------
-  1 | raw: test:/, scheme: test, host: , file: @, query:
-  2 | raw: http:/test.com, scheme: http, host: test.com
-  3 | raw: http://test.com/file.txt, scheme: http, host: test.com, file: /file.txt
-  4 | raw: http://test.com/random/path, scheme: http, host: test.com, file: /random/path
-  5 | raw: http://test.com:8162, scheme: http, host: test.com, port: 8162
-(5 rows)
+ id |                 purl                  
+----+---------------------------------------
+  1 | test
+  2 | http://test.com
+  3 | http://test.com/file.txt
+  4 | http://test.com/random/path/
+  5 | http://test.com:8162
+  6 | http://test.com:10/about/file.txt
+  7 | http://test.com/about/file.txt
+  8 | http://facebook.com/about/file.txt
+  9 | http://facebook.com/profile
+ 10 | https://facebook.com:8888/random/path
+(10 rows)
 
-SELECT postgrurl_eq('12345'::postgrurl, '123456'::postgrurl);
- postgrurl_eq 
---------------
- f
-(1 row)
-
-SELECT postgrurl_eq('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
- postgrurl_eq 
---------------
- t
-(1 row)
-
-SELECT postgrurl_gt('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
- postgrurl_gt 
---------------
- f
-(1 row)
-
-SELECT postgrurl_gt('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
- postgrurl_gt 
---------------
- t
-(1 row)
-
-SELECT postgrurl_gte('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
- postgrurl_gte 
----------------
- t
-(1 row)
-
-SELECT postgrurl_gte('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
- postgrurl_gte 
----------------
- t
-(1 row)
-
-SELECT postgrurl_gte('eacebook.com'::postgrurl, 'facebook.com'::postgrurl);
- postgrurl_gte 
+---------------------------
+-- Test compare functions
+---------------------------
+SELECT _postgrurl_eq('12345'::postgrurl, '123456'::postgrurl);
+ _postgrurl_eq 
 ---------------
  f
 (1 row)
 
-SELECT postgrurl_lt('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
- postgrurl_lt 
---------------
- f
-(1 row)
-
-SELECT postgrurl_lt('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
- postgrurl_lt 
---------------
- f
-(1 row)
-
-SELECT postgrurl_lte('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
- postgrurl_lte 
+SELECT _postgrurl_eq('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ _postgrurl_eq 
 ---------------
  t
 (1 row)
 
-SELECT postgrurl_lte('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
- postgrurl_lte 
+SELECT _postgrurl_gt('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ _postgrurl_gt 
 ---------------
  f
 (1 row)
 
-SELECT postgrurl_lte('eacebook.com'::postgrurl, 'facebook.com'::postgrurl);
- postgrurl_lte 
+SELECT _postgrurl_gt('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
+ _postgrurl_gt 
 ---------------
  t
 (1 row)
 
+SELECT _postgrurl_gte('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ _postgrurl_gte 
+----------------
+ t
+(1 row)
+
+SELECT _postgrurl_gte('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
+ _postgrurl_gte 
+----------------
+ t
+(1 row)
+
+SELECT _postgrurl_gte('eacebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ _postgrurl_gte 
+----------------
+ f
+(1 row)
+
+SELECT _postgrurl_lt('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ _postgrurl_lt 
+---------------
+ f
+(1 row)
+
+SELECT _postgrurl_lt('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
+ _postgrurl_lt 
+---------------
+ f
+(1 row)
+
+SELECT _postgrurl_lte('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ _postgrurl_lte 
+----------------
+ t
+(1 row)
+
+SELECT _postgrurl_lte('facebook.com'::postgrurl, 'eacebook.com'::postgrurl);
+ _postgrurl_lte 
+----------------
+ f
+(1 row)
+
+SELECT _postgrurl_lte('eacebook.com'::postgrurl, 'facebook.com'::postgrurl);
+ _postgrurl_lte 
+----------------
+ t
+(1 row)
+
+---------------------------
+-- Test operator calls
+---------------------------
+SELECT 'eacebook.com'::postgrurl = 'facebook.com'::postgrurl;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT 'eacebook.com'::postgrurl <> 'facebook.com'::postgrurl;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT 'eacebook.com'::postgrurl < 'facebook.com'::postgrurl;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT 'eacebook.com'::postgrurl > 'facebook.com'::postgrurl;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT 'eacebook.com'::postgrurl <= 'facebook.com'::postgrurl;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT 'eacebook.com'::postgrurl >= 'facebook.com'::postgrurl;
+ ?column? 
+----------
+ f
+(1 row)
+
+---------------------------
+-- Test postgres helper functions
+---------------------------
+SELECT getFile('http://test.com/file.txt'::postgrurl);
+  getfile  
+-----------
+ /file.txt
+(1 row)
+
+SELECT getHost('http://test.com:8239/hola?query=6'::postgrurl);
+ gethost  
+----------
+ test.com
+(1 row)
+
+SELECT getPort('http://test.com:8239/hola?query=6'::postgrurl);
+ getport 
+---------
+    8239
+(1 row)
+
+SELECT getPort('http://test.com/file.txt'::postgrurl);
+ERROR:  No port in the url.
+SELECT getDefaultPort('http://test.com:8239/hola?query=6'::postgrurl);
+ getdefaultport 
+----------------
+    -80
+(1 row)
+
+SELECT getDefaultPort('sftp://test.com:8239/hola?query=6'::postgrurl);
+ getdefaultport 
+----------------
+             22
+(1 row)
+
+SELECT getProtocol('http://test.com:8239/hola?query=6'::postgrurl);
+ getprotocol 
+-------------
+ http
+(1 row)
+
+SELECT getQuery('http://test.com:8239/hola?query=6'::postgrurl);
+ getquery 
+----------
+ ?query=6
+(1 row)
+
+SELECT getRef('http://test.com:8239/hola#somewhere'::postgrurl);
+  getref   
+-----------
+ somewhere
+(1 row)
+
+SELECT getRef('http://test.com:8239/hola?query=6'::postgrurl);
+ERROR:  No reference in the url
+SELECT sameFile('http://test.com/file.txt'::postgrurl, 'http://facebook.com/8239/hola/file.txt'::postgrurl);
+ samefile 
+----------
+ f
+(1 row)
+
+SELECT sameFile('http://test.com/file1.txt'::postgrurl, 'http://facebook.com/8239/hola/file.txt'::postgrurl);
+ samefile 
+----------
+ f
+(1 row)
+
+SELECT sameHost('http://facebook.com/8239/hola/file.txt'::postgrurl, 'http://acebook.com/8239/hola/file.txt'::postgrurl);
+ samehost 
+----------
+ f
+(1 row)
+
+SELECT sameHost('http://facebook.com/8239/hola/file.txt'::postgrurl, 'https://facebook.com/80/holu/#somewhere'::postgrurl);
+ samehost 
+----------
+ t
+(1 row)
+
+SELECT toString('http://test.com'::postgrurl);
+    tostring     
+-----------------
+ http://test.com
+(1 row)
+
+SELECT purl, sameHost(purl, 'test.com/file.txt'), sameFile(purl, 'test.com/file.txt') FROM testurl;
+                 purl                  | samehost | samefile 
+---------------------------------------+----------+----------
+ test                                  | f        | f
+ http://test.com                       | f        | f
+ http://test.com/file.txt              | f        | f
+ http://test.com/random/path/          | t        | f
+ http://test.com:8162                  | f        | f
+ http://test.com:10/about/file.txt     | t        | f
+ http://test.com/about/file.txt        | t        | f
+ http://facebook.com/about/file.txt    | f        | f
+ http://facebook.com/profile           | f        | f
+ https://facebook.com:8888/random/path | f        | f
+(10 rows)
+
+---------------------------
+-- Test index
+---------------------------
+CREATE INDEX postgrurl_idx ON testurl(purl);
+SET enable_seqscan TO off;
+--EXPLAIN ANALYSE SELECT purl FROM testurl WHERE sameFile(purl, 'http://test.com/file.txt'::postgrurl);
+SELECT purl FROM testurl WHERE sameFile(purl, 'http://test.com/file.txt'::postgrurl);
+           purl           
+--------------------------
+ http://test.com/file.txt
+(1 row)
+
+--EXPLAIN ANALYSE SELECT purl FROM testurl WHERE sameHost(purl, 'http://test.com/file.txt'::postgrurl);
+SELECT purl FROM testurl WHERE sameHost(purl, 'http://test.com/file.txt'::postgrurl);
+               purl                
+-----------------------------------
+ http://test.com/file.txt
+ http://test.com/random/path/
+ http://test.com:10/about/file.txt
+ http://test.com/about/file.txt
+(4 rows)
+
+--EXPLAIN ANALYSE SELECT purl FROM testurl WHERE equals(purl, 'http://test.com/file.txt'::postgrurl);
+SELECT purl FROM testurl WHERE equals(purl, 'http://test.com/file.txt'::postgrurl);
+           purl           
+--------------------------
+ http://test.com/file.txt
+(1 row)
+
+--EXPLAIN ANALYSE SELECT * FROM testurl WHERE purl = URL('http', 'test.com', 'about/file.txt');
+SELECT * FROM testurl WHERE purl = URL('http', 'test.com', 'about/file.txt');
+ id |              purl              
+----+--------------------------------
+  7 | http://test.com/about/file.txt
+(1 row)
+
+--EXPLAIN ANALYSE SELECT * FROM testurl WHERE purl >= 'http://test.com'::postgrurl AND purl <= 'https://test.com/random/path/about/'::postgrurl;
+SELECT * FROM testurl WHERE purl >= 'http://test.com'::postgrurl AND purl <= 'https://test.com/random/path/about/'::postgrurl;
+ id |             purl             
+----+------------------------------
+  2 | http://test.com
+  5 | http://test.com:8162
+  3 | http://test.com/file.txt
+  4 | http://test.com/random/path/
+(4 rows)
+
+--EXPLAIN ANALYSE SELECT purl FROM testurl WHERE sameHost(purl, 'http://test.com/file.txt'::postgrurl) OR sameFile(purl, 'http://facebook.com/file.txt'::postgrurl);
+SELECT purl FROM testurl WHERE sameHost(purl, 'http://test.com/file.txt'::postgrurl) OR sameFile(purl, 'http://facebook.com/file.txt'::postgrurl);
+               purl                
+-----------------------------------
+ http://test.com/file.txt
+ http://test.com/random/path/
+ http://test.com:10/about/file.txt
+ http://test.com/about/file.txt
+(4 rows)
+
+SET enable_seqscan TO on;
+---------------------------
+-- Test receive and send, by dumping/importing data to/from binary
+---------------------------
+COPY testurl TO '/tmp/testurl.in' WITH BINARY;
+DELETE FROM testurl;
+COPY testurl FROM '/tmp/testurl.in' WITH BINARY;
+SELECT * FROM testurl;
+ id |                 purl                  
+----+---------------------------------------
+  1 | test
+  2 | http://test.com
+  3 | http://test.com/file.txt
+  4 | http://test.com/random/path/
+  5 | http://test.com:8162
+  6 | http://test.com:10/about/file.txt
+  7 | http://test.com/about/file.txt
+  8 | http://facebook.com/about/file.txt
+  9 | http://facebook.com/profile
+ 10 | https://facebook.com:8888/random/path
+(10 rows)
+
+---------------------------
+-- Drop test data
+---------------------------
+DROP INDEX IF EXISTS postgrurl_idx;
 DROP TABLE testurl;
+DROP EXTENSION postgrurl;

@@ -23,22 +23,40 @@ SELECT URL('http://test.com');
  http://test.com
 (1 row)
 
-SELECT URL('http://test.com/hola/hahahaha'::postgrurl, 'hola');
-            url            
----------------------------
- http://test.com/hola/hola
+SELECT URL('http://test.com/path/subpath/'::postgrurl, 'http://');
+              url              
+-------------------------------
+ http://test.com/path/subpath/
 (1 row)
 
-SELECT URL('http://test.com/hola?query=6'::postgrurl, 'http://test.com/hola');
-         url          
-----------------------
- http://test.com/hola
+SELECT URL('http://test.com/path?query=6'::postgrurl, 'https://www.google.com/newpath');
+              url               
+--------------------------------
+ https://www.google.com/newpath
 (1 row)
 
-SELECT URL('http://test.com/hola?query=6'::postgrurl, 'halamadrid');
-            url             
-----------------------------
- http://test.com/halamadrid
+SELECT URL('http://test.com/path?query=6'::postgrurl, 'http://test.com');
+       url       
+-----------------
+ http://test.com
+(1 row)
+
+SELECT URL('http://test.com/path/subpath?query=6'::postgrurl, '/newpath');
+           url           
+-------------------------
+ http://test.com/newpath
+(1 row)
+
+SELECT URL('http://test.com/path/subpath'::postgrurl, 'newsubpath');
+               url               
+---------------------------------
+ http://test.com/path/newsubpath
+(1 row)
+
+SELECT URL('http://test.com/path/subpath/'::postgrurl, 'subsubpath');
+                   url                   
+-----------------------------------------
+ http://test.com/path/subpath/subsubpath
 (1 row)
 
 ---------------------------
@@ -52,12 +70,15 @@ INSERT INTO testurl(id, purl) VALUES(4, 'http://test.com/random/path/');
 INSERT INTO testurl(id, purl) VALUES(5, 'http://test.com:8162');
 INSERT INTO testurl(id, purl) VALUES(6, URL('http', 'test.com', 10, 'about/file.txt'));
 INSERT INTO testurl(id, purl) VALUES(7, URL('http', 'test.com', 'about/file.txt'));
+INSERT INTO testurl(id, purl) VALUES(8, URL('http', 'facebook.com', 'about/file.txt'));
+INSERT INTO testurl(id, purl) VALUES(9, URL('http', 'facebook.com', 'profile'));
+INSERT INTO testurl(id, purl) VALUES(10, 'https://facebook.com:8888/random/path');
 ---------------------------
 -- Test table printing (url_out)
 ---------------------------
 SELECT * FROM testurl;
- id |               purl                
-----+-----------------------------------
+ id |                 purl                  
+----+---------------------------------------
   1 | test
   2 | http://test.com
   3 | http://test.com/file.txt
@@ -65,7 +86,10 @@ SELECT * FROM testurl;
   5 | http://test.com:8162
   6 | http://test.com:10/about/file.txt
   7 | http://test.com/about/file.txt
-(7 rows)
+  8 | http://facebook.com/about/file.txt
+  9 | http://facebook.com/profile
+ 10 | https://facebook.com:8888/random/path
+(10 rows)
 
 ---------------------------
 -- Test compare functions
@@ -207,11 +231,15 @@ ERROR:  No port in the url.
 SELECT getDefaultPort('http://test.com:8239/hola?query=6'::postgrurl);
  getdefaultport 
 ----------------
-      795701091
+         196608
 (1 row)
 
 SELECT getDefaultPort('sftp://test.com:8239/hola?query=6'::postgrurl);
-ERROR:  No default port found for provided scheme.
+ getdefaultport 
+----------------
+             22
+(1 row)
+
 SELECT getProtocol('http://test.com:8239/hola?query=6'::postgrurl);
  getprotocol 
 -------------
@@ -263,100 +291,57 @@ SELECT toString('http://test.com'::postgrurl);
 (1 row)
 
 SELECT purl, sameHost(purl, 'test.com/file.txt'), sameFile(purl, 'test.com/file.txt') FROM testurl;
-               purl                | samehost | samefile 
------------------------------------+----------+----------
- test                              | f        | f
- http://test.com                   | f        | f
- http://test.com/file.txt          | f        | f
- http://test.com/random/path/      | t        | f
- http://test.com:8162              | f        | f
- http://test.com:10/about/file.txt | t        | f
- http://test.com/about/file.txt    | t        | f
-(7 rows)
+                 purl                  | samehost | samefile 
+---------------------------------------+----------+----------
+ test                                  | f        | f
+ http://test.com                       | f        | f
+ http://test.com/file.txt              | f        | f
+ http://test.com/random/path/          | t        | f
+ http://test.com:8162                  | f        | f
+ http://test.com:10/about/file.txt     | t        | f
+ http://test.com/about/file.txt        | t        | f
+ http://facebook.com/about/file.txt    | f        | f
+ http://facebook.com/profile           | f        | f
+ https://facebook.com:8888/random/path | f        | f
+(10 rows)
 
 ---------------------------
 -- Test index
 ---------------------------
 CREATE INDEX postgrurl_idx ON testurl(purl);
 SET enable_seqscan TO off;
-EXPLAIN ANALYSE SELECT purl FROM testurl WHERE sameFile(purl, 'http://test.com/file.txt'::postgrurl);
-                                                           QUERY PLAN                                                           
---------------------------------------------------------------------------------------------------------------------------------
- Index Only Scan using postgrurl_idx on testurl  (cost=0.13..13.99 rows=2 width=1024) (actual time=0.217..0.246 rows=1 loops=1)
-   Filter: samefile(purl, 'http://test.com/file.txt'::postgrurl)
-   Rows Removed by Filter: 6
-   Heap Fetches: 7
- Planning Time: 0.677 ms
- Execution Time: 0.298 ms
-(6 rows)
-
+--EXPLAIN ANALYSE SELECT purl FROM testurl WHERE sameFile(purl, 'http://test.com/file.txt'::postgrurl);
 SELECT purl FROM testurl WHERE sameFile(purl, 'http://test.com/file.txt'::postgrurl);
            purl           
 --------------------------
  http://test.com/file.txt
 (1 row)
 
-EXPLAIN ANALYSE SELECT purl FROM testurl WHERE sameHost(purl, 'http://test.com/file.txt'::postgrurl);
-                                                           QUERY PLAN                                                           
---------------------------------------------------------------------------------------------------------------------------------
- Index Only Scan using postgrurl_idx on testurl  (cost=0.13..13.99 rows=2 width=1024) (actual time=0.128..0.157 rows=4 loops=1)
-   Filter: samehost(purl, 'http://test.com/file.txt'::postgrurl)
-   Rows Removed by Filter: 3
-   Heap Fetches: 7
- Planning Time: 0.090 ms
- Execution Time: 0.176 ms
-(6 rows)
-
+--EXPLAIN ANALYSE SELECT purl FROM testurl WHERE sameHost(purl, 'http://test.com/file.txt'::postgrurl);
 SELECT purl FROM testurl WHERE sameHost(purl, 'http://test.com/file.txt'::postgrurl);
                purl                
 -----------------------------------
  http://test.com/file.txt
  http://test.com/random/path/
- http://test.com/about/file.txt
  http://test.com:10/about/file.txt
+ http://test.com/about/file.txt
 (4 rows)
 
-EXPLAIN ANALYSE SELECT purl FROM testurl WHERE equals(purl, 'http://test.com/file.txt'::postgrurl);
-                                                           QUERY PLAN                                                           
---------------------------------------------------------------------------------------------------------------------------------
- Index Only Scan using postgrurl_idx on testurl  (cost=0.13..13.99 rows=2 width=1024) (actual time=0.170..0.198 rows=1 loops=1)
-   Filter: equals(purl, 'http://test.com/file.txt'::postgrurl)
-   Rows Removed by Filter: 6
-   Heap Fetches: 7
- Planning Time: 0.111 ms
- Execution Time: 0.213 ms
-(6 rows)
-
+--EXPLAIN ANALYSE SELECT purl FROM testurl WHERE equals(purl, 'http://test.com/file.txt'::postgrurl);
 SELECT purl FROM testurl WHERE equals(purl, 'http://test.com/file.txt'::postgrurl);
            purl           
 --------------------------
  http://test.com/file.txt
 (1 row)
 
-EXPLAIN ANALYSE SELECT * FROM testurl WHERE purl = URL('http', 'test.com', 'about/file.txt');
-                                                        QUERY PLAN                                                        
---------------------------------------------------------------------------------------------------------------------------
- Index Scan using postgrurl_idx on testurl  (cost=0.13..8.15 rows=1 width=1028) (actual time=0.017..0.018 rows=1 loops=1)
-   Index Cond: (purl = 'http://test.com/about/file.txt'::postgrurl)
- Planning Time: 0.155 ms
- Execution Time: 0.038 ms
-(4 rows)
-
+--EXPLAIN ANALYSE SELECT * FROM testurl WHERE purl = URL('http', 'test.com', 'about/file.txt');
 SELECT * FROM testurl WHERE purl = URL('http', 'test.com', 'about/file.txt');
  id |              purl              
 ----+--------------------------------
   7 | http://test.com/about/file.txt
 (1 row)
 
-EXPLAIN ANALYSE SELECT * FROM testurl WHERE purl >= 'http://test.com'::postgrurl;
-                                                        QUERY PLAN                                                        
---------------------------------------------------------------------------------------------------------------------------
- Index Scan using postgrurl_idx on testurl  (cost=0.13..8.17 rows=2 width=1028) (actual time=0.253..0.257 rows=6 loops=1)
-   Index Cond: (purl >= 'http://test.com'::postgrurl)
- Planning Time: 0.083 ms
- Execution Time: 0.274 ms
-(4 rows)
-
+--EXPLAIN ANALYSE SELECT * FROM testurl WHERE purl >= 'http://test.com'::postgrurl AND purl <= 'https://test.com/random/path/about/'::postgrurl;
 SELECT * FROM testurl WHERE purl >= 'http://test.com'::postgrurl AND purl <= 'https://test.com/random/path/about/'::postgrurl;
  id |             purl             
 ----+------------------------------
@@ -366,7 +351,38 @@ SELECT * FROM testurl WHERE purl >= 'http://test.com'::postgrurl AND purl <= 'ht
   4 | http://test.com/random/path/
 (4 rows)
 
+--EXPLAIN ANALYSE SELECT purl FROM testurl WHERE sameHost(purl, 'http://test.com/file.txt'::postgrurl) OR sameFile(purl, 'http://facebook.com/file.txt'::postgrurl);
+SELECT purl FROM testurl WHERE sameHost(purl, 'http://test.com/file.txt'::postgrurl) OR sameFile(purl, 'http://facebook.com/file.txt'::postgrurl);
+               purl                
+-----------------------------------
+ http://test.com/file.txt
+ http://test.com/random/path/
+ http://test.com:10/about/file.txt
+ http://test.com/about/file.txt
+(4 rows)
+
 SET enable_seqscan TO on;
+---------------------------
+-- Test receive and send, by dumping/importing data to/from binary
+---------------------------
+COPY testurl TO '/tmp/testurl.in' WITH BINARY;
+DELETE FROM testurl;
+COPY testurl FROM '/tmp/testurl.in' WITH BINARY;
+SELECT * FROM testurl;
+ id |                 purl                  
+----+---------------------------------------
+  1 | test
+  2 | http://test.com
+  3 | http://test.com/file.txt
+  4 | http://test.com/random/path/
+  5 | http://test.com:8162
+  6 | http://test.com:10/about/file.txt
+  7 | http://test.com/about/file.txt
+  8 | http://facebook.com/about/file.txt
+  9 | http://facebook.com/profile
+ 10 | https://facebook.com:8888/random/path
+(10 rows)
+
 ---------------------------
 -- Drop test data
 ---------------------------
