@@ -1400,6 +1400,10 @@ Datum toString(PG_FUNCTION_ARGS){
     pfree(output);
 }
 
+/*
+This code snippet is heavily inspired on Mobility DB's approach.
+For more info consult https://github.com/MobilityDB
+*/
 PG_FUNCTION_INFO_V1(postgrurl_support_function);
 PGDLLEXPORT Datum
 postgrurl_support_function(PG_FUNCTION_ARGS){
@@ -1416,17 +1420,30 @@ postgrurl_support_function(PG_FUNCTION_ARGS){
     //Handle index support
     if(IsA(rawreq, SupportRequestIndexCondition)){
         SupportRequestIndexCondition *req = (SupportRequestIndexCondition *) rawreq;
-        //This checks if the operator is >=
-        if(is_opclause(req->node) && list_length(((OpExpr *) req->node)->args) == 2 && ((OpExpr *) req->node)->opno == GE_OP){
-            IndexCond *cond = makeNode(IndexCond);
-            cond->indexname = "btree_index_name";
-            cond->indexprs = NIL;
-            cond->indexkeys = 2;
-            cond->indexcollations = NIL;
-            cond->opclass = BTREE_OPS_OID;
-            cond->indexpred = NIL;
-            cond->indexorderdir = SORTBY_DEFAULT;
-            PG_RETURN_POINTER(cond);
+        bool isfunc = is_funcclause(req->node);
+        bool isbinop = isfunc ? false : (is_opclause(req->node) && list_length(((OpExpr *) req->node)->args) == 2);
+        if(isfunc || isbinop){
+            Oid function_id;
+            Oid idx_operator_id;
+            Oid exproid;
+            List *args;
+            Node *leftarg, *rightarg;
+            operid = InvalidOid;
+            if (isfunc){
+                FuncExpr *funcexpr = (FuncExpr *) req->node;
+                funcoid = funcexpr->funcid;
+                args = funcexpr->args;
+            }
+            else{
+                OpExpr *opexpr = (OpExpr *) req->node;
+                operid = opexpr->opno;
+                funcoid = opexpr->opfuncid;
+                args = opexpr->args;
+            }
+            int nargs = list_length(args);
+            IndexableFunction idxfn = {NULL, 0, 0, 0};
+            Oid opfamilyoid = req->opfamily; /* Operator family of the index */
+            
         }
     }
     PG_RETURN_NULL();
