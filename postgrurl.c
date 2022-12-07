@@ -68,7 +68,7 @@ static int match_regex (regex_t * r, const char * to_match, int idxs_start[], in
        previous match. */
     const char * p = to_match;
     /* "N_matches" is the maximum number of matches allowed. */
-    const int n_matches = 1;
+    const int n_matches = 1; 
     /* "M" contains the matches found. */
     regmatch_t m[1];// only include the match of the whole pattern
 
@@ -200,6 +200,13 @@ postgrurl* string_to_url(char* str){
 	int with_query;
   int end_slash=0;
 
+    //for url match
+    int idxs_start[10]; // the first index of each match
+    int idxs_end[10]; // the last index of each match
+    int n_subchars = 0; // the number of matches
+    char *raw_url;
+    regex_t r;
+
 
 	//memory allocation
 	scheme = malloc(sizeof(char) * (strlen(str)+1));
@@ -214,8 +221,40 @@ postgrurl* string_to_url(char* str){
 	strcpy(raw,"");
 	str_copy = malloc(sizeof(char) * (strlen(str)+1));
 	strcpy(str_copy,str);
+    raw_url = malloc(sizeof(char) * (strlen(str)+1));
+	strcpy(raw_url,str);
 
-  port = 0;
+    // check if the input is a valid URL
+    char url_pattern[] = "([a-zA-Z]{1,}(://){1}){0,1}" // scheme
+                         "" // user info
+                         "[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.([a-zA-Z0-9()]{1,63}){1,}" // host
+                         "(:{1}[0-9]{1,}){0,1}" // port
+                         "(/{1}[\\(\\-\\.a-zA-Z0-9~!$&'*+,;=:@\\)]{1,}){0,}(/){0,1}" // path
+                         "(\\?[a-zA-Z0-9\\),:;=@^`{|}+?!*~._\\(&\\%-]{1,}){0,1}" // query
+                         "((#){1}[a-zA-Z0-9\\),:;=@\\(/$&-]{1,}){0,1}"; // reference
+
+    // getting regex matches
+    compile_regex(& r, url_pattern);
+    match_regex(& r, str, idxs_start, idxs_end, &n_subchars);
+
+    if (n_subchars > 0){ // if any matches
+      if (n_subchars > 1){ // if more than one match
+         ereport(ERROR,(errmsg("multiple URLs in the input")));
+      }
+      if (idxs_start[0] == 0 && idxs_end[0] == strlen(str)){
+         // if the match is for the whole input, not just a part of it
+         // valid URL
+         ;
+      }
+      else{
+         // only a portion of the string is matched
+         ereport(ERROR,(errmsg("not a valid URL")));
+      }
+    }
+    else{
+        // no matches
+        ereport(ERROR,(errmsg("not a valid URL")));
+    }
 
 	//determine which parts are contained in the URL
 	with_protocol = strstr(str,"://");
@@ -440,10 +479,6 @@ postgrurl* string_to_url(char* str){
     else if(with_protocol!=0){
         //protocol but no port .-> assign default port
         url->defaultPort = assignDefaultPort(scheme);
-        url->port = port;
-    }else{
-      url->port = port;
-      url->defaultPort = port;
     }
 
 	if(with_file!=0){
@@ -475,6 +510,7 @@ postgrurl* string_to_url(char* str){
 	free(query);
     free(raw);
 	free(str_copy);
+    free(raw_url);
 
     //Problem
 	//free(query_split);
@@ -687,7 +723,7 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, char* spec) {
         strcpy(raw, context->raw);
 
         free(context);
-
+            
         postgrurl * url = string_to_url(raw);
         pfree(raw);
 
@@ -783,13 +819,7 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, char* spec) {
     char * raw = palloc(raw_size);
 
     // Ignore if the query does not contains any port
-    if(context->port == 0){
-      snprintf(raw, raw_size, "%s://%s/%s%s", context->scheme, context->host, file, query);
-    } else{
-        snprintf(raw, raw_size, "%s://%s:%d/%s%s", context->scheme, context->host,context->port ,file, query);
-    }
-
-
+    snprintf(raw, raw_size, "%s://%s/%s%s", context->scheme, context->host, file, query);
 
     postgrurl * url = string_to_url(raw);
 
@@ -918,7 +948,7 @@ Datum url_recv(PG_FUNCTION_ARGS){
     StringInfo buf = (StringInfo) PG_GETARG_POINTER(0);
     const char *str = pq_getmsgstring(buf);
     pq_getmsgend(buf);
-
+    
     postgrurl *url;
     url = URLFromString(str);
 
