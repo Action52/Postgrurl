@@ -1157,10 +1157,10 @@ Datum getDefaultPort(PG_FUNCTION_ARGS){
     pfree(url);
 }
 
-PG_FUNCTION_INFO_V1(getFile);
-Datum getFile(PG_FUNCTION_ARGS){
+PG_FUNCTION_INFO_V1(getPath);
+Datum getPath(PG_FUNCTION_ARGS){
     /*
-        Returns the file part of the url.
+        Returns the path of the url.
     */
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
     char * output;
@@ -1171,7 +1171,7 @@ Datum getFile(PG_FUNCTION_ARGS){
     else{
         ereport(ERROR,
             (
-             errmsg("No file in the url.")
+             errmsg("No path in the url.")
             )
         );
     }
@@ -1205,46 +1205,49 @@ Datum getHost(PG_FUNCTION_ARGS){
     pfree(url);
 }
 
-PG_FUNCTION_INFO_V1(getPath);
-Datum getPath(PG_FUNCTION_ARGS){
+PG_FUNCTION_INFO_V1(getFile);
+Datum getFile(PG_FUNCTION_ARGS){
     /*
-        Returns the path part of the url.
+        Returns the filename of the path part
     */
 
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
-    char * output;
-    output = (char *) palloc((strlen(url->raw)+1)*sizeof(char));
-    char path_pattern[] = "([^/]/{1}[a-zA-Z0-9\\-\\_.]{1,}){1,}";
+    char * output = (char *) palloc((strlen(url->file)+1)*sizeof(char));
+    char * path = (char *) palloc((strlen(url->file)+1)*sizeof(char));
+    char file_pattern[] = "/{1}[\\(a-zA-Z0-9~!$&'*+,;=:@\\)\\-]{1,}[.]{1}[a-zA-Z0-9]{1,}";
+    // char path_pattern[] = "([^/]/{1}[a-zA-Z0-9\\-\\_.]{1,}){1,}";
     int n_subchars = 0;
     int idxs_start[10];
     int idxs_end[10];
     regex_t r;
 
-    compile_regex(& r, path_pattern);
-    match_regex(& r, url->raw, idxs_start, idxs_end, &n_subchars);
-    // ereport(ERROR,(errmsg("n_subchars: %d", n_subchars)));
+    strcpy(path, url->file);
+    compile_regex(& r, file_pattern);
+    match_regex(& r, path, idxs_start, idxs_end, &n_subchars);
+    // ereport(ERROR,(errmsg("n_subchars: %d: %d-%d", n_subchars, idxs_start[0], idxs_end[0])));
     if (n_subchars > 0){ // if path match exists
         if (n_subchars > 1){ // if it's more than one
             ereport(ERROR,
                 (
-                errmsg("Only a single instance of path is allowed in a URL")
+                errmsg("Only a single instance of file is allowed in a URL")
                 )
             );
         }
-        slice(url->raw, output, idxs_start[0]+1, idxs_end[0]);
-        printf("path: %s\n", output);
+        slice(path, output, idxs_start[0]+1, idxs_end[0]);
     }
     else {
         ereport(ERROR,
             (
-             errmsg("No path in the url")
+             errmsg("No file in the url")
             )
         );
     }
+
     PG_RETURN_CSTRING(output);
     pfree(output);
-    pfree(path_pattern);
+    pfree(file_pattern);
     pfree(url);
+    pfree(path);
 }
 
 PG_FUNCTION_INFO_V1(getPort);
