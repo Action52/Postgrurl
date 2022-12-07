@@ -21,6 +21,10 @@
 #include <assert.h>
 #include <regex.h>
 
+#include "utils/index_support.h"
+#include "utils/selfuncs.h"
+
+
 #define MAX_ERROR_MSG 0x1000
 
 PG_MODULE_MAGIC;
@@ -1105,6 +1109,7 @@ Datum getRef(PG_FUNCTION_ARGS);
 Datum sameFile(PG_FUNCTION_ARGS);
 Datum sameHost(PG_FUNCTION_ARGS);
 Datum toString(PG_FUNCTION_ARGS);
+Datum postgrurl_support_function(PG_FUNCTION_ARGS);
 
 PG_FUNCTION_INFO_V1(getAuthority);
 Datum getAuthority(PG_FUNCTION_ARGS){
@@ -1393,4 +1398,36 @@ Datum toString(PG_FUNCTION_ARGS){
     output = psprintf("%s", output);
     PG_RETURN_CSTRING(output);
     pfree(output);
+}
+
+PG_FUNCTION_INFO_V1(postgrurl_support_function);
+PGDLLEXPORT Datum
+postgrurl_support_function(PG_FUNCTION_ARGS){
+    /*
+        Support function for the index if the postgres version is higher than 12.
+    */
+    Node *rawreq = (Node *) PG_GETARG_POINTER(0);
+    // Assign a fixed selectivity.
+    if(IsA(rawreq, SupportRequestSelectivity)){
+        SupportRequestSelectivity *req = (SupportRequestSelectivity *) rawreq;
+        req->selectivity = 0.7;
+        PG_RETURN_POINTER(req);
+    }
+    //Handle index support
+    if(IsA(rawreq, SupportRequestIndexCondition)){
+        SupportRequestIndexCondition *req = (SupportRequestIndexCondition *) rawreq;
+        //This checks if the operator is >=
+        if(is_opclause(req->node) && list_length(((OpExpr *) req->node)->args) == 2 && ((OpExpr *) req->node)->opno == GE_OP){
+            IndexCond *cond = makeNode(IndexCond);
+            cond->indexname = "btree_index_name";
+            cond->indexprs = NIL;
+            cond->indexkeys = 2;
+            cond->indexcollations = NIL;
+            cond->opclass = BTREE_OPS_OID;
+            cond->indexpred = NIL;
+            cond->indexorderdir = SORTBY_DEFAULT;
+            PG_RETURN_POINTER(cond);
+        }
+    }
+    PG_RETURN_NULL();
 }

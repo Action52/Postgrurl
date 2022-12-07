@@ -195,6 +195,13 @@ AS
 *  Helper functions                                                              *
 *********************************************************************************/
 
+#if POSTGRESQL_VERSION_NUMBER >= 120000
+CREATE FUNCTION postgrurl_support_function(internal)
+RETURNS internal
+AS '$libdir/postgrurl', 'postgrurl_support_function'
+LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
+#endif //POSTGRESQL_VERSION_NUMBER >= 120000
+
 CREATE OR REPLACE FUNCTION getFile(postgrurl)
 RETURNS cstring
 AS '$libdir/postgrurl', 'getFile'
