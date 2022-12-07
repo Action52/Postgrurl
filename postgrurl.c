@@ -198,27 +198,79 @@ postgrurl* string_to_url(char* str){
 	int with_port;
 	int with_file;
 	int with_query;
-  int end_slash=0;
+    int end_slash=0;
 
+    //for url match
+    int idxs_start[10]; // the first index of each match
+    int idxs_end[10]; // the last index of each match
+    int n_subchars = 0; // the number of matches
+    char *raw_url;
+    regex_t r;
+    int only_scheme = 0;
 
-	//memory allocation
-	scheme = malloc(sizeof(char) * (strlen(str)+1));
-	strcpy(scheme,"");
-	host = malloc(sizeof(char) * (strlen(str)+1));
+    //memory allocation
+    scheme = malloc(sizeof(char) * (strlen(str)+1));
+    strcpy(scheme,"");
+    host = malloc(sizeof(char) * (strlen(str)+1));
     strcpy(host,"");
-	file = malloc(sizeof(char) * (strlen(str)+1));
-	strcpy(file,"");
-	query = malloc(sizeof(char) * (strlen(str)+1));
-	strcpy(query,"");
+    file = malloc(sizeof(char) * (strlen(str)+1));
+    strcpy(file,"");
+    query = malloc(sizeof(char) * (strlen(str)+1));
+    strcpy(query,"");
     raw = malloc(sizeof(char) * (strlen(str)+1));
-	strcpy(raw,"");
-	str_copy = malloc(sizeof(char) * (strlen(str)+1));
-	strcpy(str_copy,str);
+    strcpy(raw,"");
+    str_copy = malloc(sizeof(char) * (strlen(str)+1));
+    strcpy(str_copy,str);
+    raw_url = malloc(sizeof(char) * (strlen(str)+1));
+    strcpy(raw_url,str);
 
-  port = 0;
+    // check if the input is a valid URL
+    char only_scheme_pattern[] = "([a-zA-Z]{1,}(://){1}){1}";
+    char url_pattern[] = "([a-zA-Z]{1,}(://){1}){0,1}" // scheme
+                         "" // user info
+                         "[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.([a-zA-Z0-9()]{1,63}){1,}" // host
+                         "(:{1}[0-9]{1,}){0,1}" // port
+                         "(/{1}[\\(\\-\\.a-zA-Z0-9~!$&'*+,;=:@\\)]{1,}){0,}(/){0,1}" // path
+                         "(\\?[a-zA-Z0-9\\),:;=@^`{|}+?!*~._\\(&\\%-]{1,}){0,1}" // query
+                         "((#){1}[a-zA-Z0-9\\),:;=@\\(/$&-]{1,}){0,1}"; // reference
 
-	//determine which parts are contained in the URL
-	with_protocol = strstr(str,"://");
+    // checking if it is just scheme first
+    compile_regex(& r, only_scheme_pattern);
+    match_regex(& r, str, idxs_start, idxs_end, &n_subchars);
+    if (n_subchars == 1 && idxs_start[0] == 0 && idxs_end[0] == strlen(str)){
+            // if the match is for the whole input, not just a part of it
+            only_scheme = 1;
+    }
+
+    // getting regex matches
+    if (only_scheme == 0){
+        n_subchars = 0;
+        compile_regex(& r, url_pattern);
+        match_regex(& r, str, idxs_start, idxs_end, &n_subchars);
+
+        if (n_subchars > 0){ // if any matches
+        if (n_subchars > 1){ // if more than one match
+            ereport(ERROR,(errmsg("multiple URLs in the input")));
+        }
+        if (idxs_start[0] == 0 && idxs_end[0] == strlen(str)){
+            // if the match is for the whole input, not just a part of it
+            // valid URL
+            ;
+        }
+        else{
+            // only a portion of the string is matched
+            ereport(ERROR,(errmsg("not a valid URL")));
+        }
+        }
+        else{
+            // no matches
+            ereport(ERROR,(errmsg("not a valid URL")));
+        }
+        // ereport(ERROR,(errmsg("n_subchars %d", n_subchars)));
+    }
+
+    //determine which parts are contained in the URL
+    with_protocol = strstr(str,"://");
 	if(with_protocol!= NULL){
 		char *ptr = strtok(str_copy, ":");
 		char *url_part = str + strlen(ptr)+3;
@@ -475,6 +527,7 @@ postgrurl* string_to_url(char* str){
 	free(query);
     free(raw);
 	free(str_copy);
+    free(raw_url);
 
     //Problem
 	//free(query_split);
@@ -1224,42 +1277,46 @@ Datum getFile(PG_FUNCTION_ARGS){
     */
 
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
-    char * output = (char *) palloc((strlen(url->file)+1)*sizeof(char));
-    char * path = (char *) palloc((strlen(url->file)+1)*sizeof(char));
     char file_pattern[] = "/{1}[\\(a-zA-Z0-9~!$&'*+,;=:@\\)\\-]{1,}[.]{1}[a-zA-Z0-9]{1,}";
     // char path_pattern[] = "([^/]/{1}[a-zA-Z0-9\\-\\_.]{1,}){1,}";
     int n_subchars = 0;
     int idxs_start[10];
     int idxs_end[10];
     regex_t r;
+    char * output;
+    char * path;
 
-    strcpy(path, url->file);
-    compile_regex(& r, file_pattern);
-    match_regex(& r, path, idxs_start, idxs_end, &n_subchars);
-    // ereport(ERROR,(errmsg("n_subchars: %d: %d-%d", n_subchars, idxs_start[0], idxs_end[0])));
-    if (n_subchars > 0){ // if path match exists
-        if (n_subchars > 1){ // if it's more than one
-            ereport(ERROR,
-                (
-                errmsg("Only a single instance of file is allowed in a URL")
-                )
-            );
+    if(url->file != NULL){
+        output = (char *) palloc((strlen(url->file)+1)*sizeof(char));
+        path = (char *) palloc((strlen(url->file)+1)*sizeof(char));
+
+        strcpy(path, url->file);
+        compile_regex(& r, file_pattern);
+        match_regex(& r, path, idxs_start, idxs_end, &n_subchars);
+        // ereport(ERROR,(errmsg("n_subchars: %d: %d-%d", n_subchars, idxs_start[0], idxs_end[0])));
+        if (n_subchars > 0){ // if path match exists
+            if (n_subchars > 1){ // if it's more than one
+                ereport(ERROR,
+                    (
+                    errmsg("Only a single instance of file is allowed in a URL")
+                    )
+                );
+            }
+            slice(path, output, idxs_start[0]+1, idxs_end[0]);
+            PG_RETURN_CSTRING(output);
         }
-        slice(path, output, idxs_start[0]+1, idxs_end[0]);
+        else {
+            ereport(ERROR,(errmsg("No file in the url")));
+        }
+        pfree(output);
+        pfree(path);
     }
-    else {
-        ereport(ERROR,
-            (
-             errmsg("No file in the url")
-            )
-        );
+    else{
+        ereport(ERROR,(errmsg("No file in the url")));
     }
-
-    PG_RETURN_CSTRING(output);
-    pfree(output);
+    
     pfree(file_pattern);
     pfree(url);
-    pfree(path);
 }
 
 PG_FUNCTION_INFO_V1(getPort);
