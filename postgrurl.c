@@ -35,6 +35,7 @@ struct postgrurl{
     char *host;
     char *file;
     char *query;
+    char *user_info;
     int port;
     int defaultPort;
 };
@@ -171,7 +172,7 @@ int assignDefaultPort(const char *protocol){
 	return defaultPort;
 }
 
-postgrurl* string_to_url(char* str){
+postgrurl* string_to_url(char* str_init){
     /*
         Converts a given string into a url representation.
     */
@@ -180,7 +181,10 @@ postgrurl* string_to_url(char* str){
 	postgrurl* url = malloc(sizeof(postgrurl));
 
     //helper variables
-	char *str_copy;
+	char *str;
+    char *str1;
+    char *str2;
+    char *str_copy;
 	char *value;
 	char *query_split;
   char string_port[5];
@@ -191,6 +195,7 @@ postgrurl* string_to_url(char* str){
 	char *file;
   char *query;
   char *raw;
+    char *user_info;
 	int port = 0;
 
 	//check variables
@@ -198,6 +203,7 @@ postgrurl* string_to_url(char* str){
 	int with_port;
 	int with_file;
 	int with_query;
+    int with_userinfo=0;
     int end_slash=0;
 
     //for url match
@@ -209,35 +215,42 @@ postgrurl* string_to_url(char* str){
     int only_scheme = 0;
 
     //memory allocation
-    scheme = malloc(sizeof(char) * (strlen(str)+1));
+    scheme = malloc(sizeof(char) * (strlen(str_init)+1));
     strcpy(scheme,"");
-    host = malloc(sizeof(char) * (strlen(str)+1));
+    host = malloc(sizeof(char) * (strlen(str_init)+1));
     strcpy(host,"");
-    file = malloc(sizeof(char) * (strlen(str)+1));
+    file = malloc(sizeof(char) * (strlen(str_init)+1));
     strcpy(file,"");
-    query = malloc(sizeof(char) * (strlen(str)+1));
+    query = malloc(sizeof(char) * (strlen(str_init)+1));
     strcpy(query,"");
-    raw = malloc(sizeof(char) * (strlen(str)+1));
+    user_info = malloc(sizeof(char) * (strlen(str_init)+1));
+    strcpy(user_info,"");
+    raw = malloc(sizeof(char) * (strlen(str_init)+1));
     strcpy(raw,"");
-    str_copy = malloc(sizeof(char) * (strlen(str)+1));
-    strcpy(str_copy,str);
-    raw_url = malloc(sizeof(char) * (strlen(str)+1));
-    strcpy(raw_url,str);
+    str = malloc(sizeof(char) * (strlen(str_init)+1));
+    str1 = malloc(sizeof(char) * (strlen(str_init)+1));
+    str2 = malloc(sizeof(char) * (strlen(str_init)+1));
+    str_copy = malloc(sizeof(char) * (strlen(str_init)+1));
+    strcpy(str_copy, str_init);
+    raw_url = malloc(sizeof(char) * (strlen(str_init)+1));
+    strcpy(raw_url,str_init);
 
     // check if the input is a valid URL
+    char userinfo_pattern[] = "([-a-zA-Z0-9:%._\\+~#=]{1,}:[-a-zA-Z0-9:%._\\+~#=]{1,}@){1}";
     char only_scheme_pattern[] = "([a-zA-Z]{1,}(://){1}){1}";
     char url_pattern[] = "([a-zA-Z]{1,}(://){1}){0,1}" // scheme
-                         "" // user info
+                         "([-a-zA-Z0-9:%._\\+~#=]{1,}:[-a-zA-Z0-9:%._\\+~#=]{1,}@){0,1}" // user info
                          "[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.([a-zA-Z0-9()]{1,63}){1,}" // host
                          "(:{1}[0-9]{1,}){0,1}" // port
                          "(/{1}[\\(\\-\\.a-zA-Z0-9~!$&'*+,;=:@\\)]{1,}){0,}(/){0,1}" // path
                          "(\\?[a-zA-Z0-9\\),:;=@^`{|}+?!*~._\\(&\\%-]{1,}){0,1}" // query
                          "((#){1}[a-zA-Z0-9\\),:;=@\\(/$&-]{1,}){0,1}"; // reference
+    
 
     // checking if it is just scheme first
     compile_regex(& r, only_scheme_pattern);
-    match_regex(& r, str, idxs_start, idxs_end, &n_subchars);
-    if (n_subchars == 1 && idxs_start[0] == 0 && idxs_end[0] == strlen(str)){
+    match_regex(& r, str_init, idxs_start, idxs_end, &n_subchars);
+    if (n_subchars == 1 && idxs_start[0] == 0 && idxs_end[0] == strlen(str_init)){
             // if the match is for the whole input, not just a part of it
             only_scheme = 1;
     }
@@ -246,13 +259,13 @@ postgrurl* string_to_url(char* str){
     if (only_scheme == 0){
         n_subchars = 0;
         compile_regex(& r, url_pattern);
-        match_regex(& r, str, idxs_start, idxs_end, &n_subchars);
+        match_regex(& r, str_init, idxs_start, idxs_end, &n_subchars);
 
         if (n_subchars > 0){ // if any matches
         if (n_subchars > 1){ // if more than one match
             ereport(ERROR,(errmsg("multiple URLs in the input")));
         }
-        if (idxs_start[0] == 0 && idxs_end[0] == strlen(str)){
+        if (idxs_start[0] == 0 && idxs_end[0] == strlen(str_init)){
             // if the match is for the whole input, not just a part of it
             // valid URL
             ;
@@ -267,6 +280,31 @@ postgrurl* string_to_url(char* str){
             ereport(ERROR,(errmsg("not a valid URL")));
         }
         // ereport(ERROR,(errmsg("n_subchars %d", n_subchars)));
+    }
+
+    n_subchars = 0;
+    // extracting user info if there is any
+    compile_regex(& r, userinfo_pattern);
+    match_regex(& r, str_init, idxs_start, idxs_end, &n_subchars);
+    if (n_subchars > 0){
+            if (n_subchars > 1){
+                ereport(ERROR,(errmsg("only one user_info part is allowed")));
+            }
+            
+            with_userinfo = 1;
+            slice(str_init, user_info, idxs_start[0], idxs_end[0]-1);
+
+            // removing user_info from str
+            slice(str_init, str1, 0, idxs_start[0]);
+            slice(str_init, str2, idxs_end[0], strlen(str_init));
+            strcat(str1, str2);
+            strcpy(str, str1);
+            // ereport(ERROR,(errmsg("str_copy: %s\n", user_info)));
+            // slice(other_parts2, other_parts, 0, idxs_start[0]);
+            // slice(other_parts2, other_parts3, idxs_end[0], strlen(other_parts2));
+        }
+    else{
+        strcpy(str,str_init);
     }
 
     //determine which parts are contained in the URL
@@ -289,7 +327,7 @@ postgrurl* string_to_url(char* str){
 			end_slash = 1;
 		}
 	}
-
+    ereport(ERROR,(errmsg("str_copy: %s\n", str)));
 	char *ptr = strtok(str, delim);
 
     //split the URL string into its individual components
@@ -528,6 +566,10 @@ postgrurl* string_to_url(char* str){
     free(raw);
 	free(str_copy);
     free(raw_url);
+    free(str1);
+    free(str);
+    free(str2);
+    free(user_info);
 
     //Problem
 	//free(query_split);
