@@ -70,6 +70,7 @@ SELECT getProtocol('http://test.com:8239/hola?query=6'::postgrurl);
 SELECT getQuery('http://test.com:8239/hola?query=6'::postgrurl);
 SELECT getRef('http://test.com:8239/hola#somewhere'::postgrurl);
 SELECT getRef('http://test.com:8239/hola?query=6'::postgrurl);
+SELECT getUserInfo('http://user:pw@test.com:8239/hola?query=6'::postgrurl);
 SELECT sameFile('http://test.com/file.txt'::postgrurl, 'http://facebook.com/8239/hola/file.txt'::postgrurl);
 SELECT sameFile('http://test.com/file1.txt'::postgrurl, 'http://facebook.com/8239/hola/file.txt'::postgrurl);
 SELECT sameHost('http://facebook.com/8239/hola/file.txt'::postgrurl, 'http://acebook.com/8239/hola/file.txt'::postgrurl);

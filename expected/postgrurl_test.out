@@ -95,11 +95,7 @@ SELECT * FROM testurl;
 -- Test compare functions
 ---------------------------
 SELECT _postgrurl_eq('12345'::postgrurl, '123456'::postgrurl);
- _postgrurl_eq 
----------------
- f
-(1 row)
-
+ERROR:  not a valid URL
 SELECT _postgrurl_eq('facebook.com'::postgrurl, 'facebook.com'::postgrurl);
  _postgrurl_eq 
 ---------------
@@ -260,6 +256,12 @@ SELECT getRef('http://test.com:8239/hola#somewhere'::postgrurl);
 
 SELECT getRef('http://test.com:8239/hola?query=6'::postgrurl);
 ERROR:  No reference in the url
+SELECT getUserInfo('http://user:pw@test.com:8239/hola?query=6'::postgrurl);
+ getuserinfo 
+-------------
+ user:pw@
+(1 row)
+
 SELECT sameFile('http://test.com/file.txt'::postgrurl, 'http://facebook.com/8239/hola/file.txt'::postgrurl);
  samefile 
 ----------
