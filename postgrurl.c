@@ -35,6 +35,7 @@ struct postgrurl{
     char *host;
     char *file;
     char *query;
+    char *user_info;
     int port;
     int defaultPort;
 };
@@ -60,6 +61,20 @@ static int compile_regex (regex_t * r, const char * regex_text)
       return 1;
     }
     return 0;
+}
+
+char *strremove(char *str, const char *sub) {
+    char *p, *q, *r;
+    if (*sub && (q = r = strstr(str, sub)) != NULL) {
+        size_t len = strlen(sub);
+        while ((r = strstr(p = r + len, sub)) != NULL) {
+            while (p < r)
+                *q++ = *p++;
+        }
+        while ((*q++ = *p++) != '\0')
+            continue;
+    }
+    return str;
 }
 
 static int match_regex (regex_t * r, const char * to_match, int idxs_start[], int idxs_end[], int* n_subchars)
@@ -180,10 +195,14 @@ postgrurl* string_to_url(char* str){
 	postgrurl* url = malloc(sizeof(postgrurl));
 
     //helper variables
-	char *str_copy;
+	// char *str;
+    char *str1;
+    char *str2;
+    char *str_copy;
 	char *value;
 	char *query_split;
   char string_port[5];
+    int new_len=0;
 
 	//query parts
 	char *scheme;
@@ -191,6 +210,7 @@ postgrurl* string_to_url(char* str){
 	char *file;
   char *query;
   char *raw;
+    char *user_info;
 	int port = 0;
 
 	//check variables
@@ -198,6 +218,7 @@ postgrurl* string_to_url(char* str){
 	int with_port;
 	int with_file;
 	int with_query;
+    int with_userinfo=0;
     int end_slash=0;
 
     //for url match
@@ -220,14 +241,15 @@ postgrurl* string_to_url(char* str){
     raw = malloc(sizeof(char) * (strlen(str)+1));
     strcpy(raw,"");
     str_copy = malloc(sizeof(char) * (strlen(str)+1));
-    strcpy(str_copy,str);
+    strcpy(str_copy, str);
     raw_url = malloc(sizeof(char) * (strlen(str)+1));
     strcpy(raw_url,str);
 
     // check if the input is a valid URL
+    char userinfo_pattern[] = "([-a-zA-Z0-9:%._\\+~#=]{1,}:[-a-zA-Z0-9:%._\\+~#=]{1,}@){1}";
     char only_scheme_pattern[] = "([a-zA-Z]{1,}(://){1}){1}";
     char url_pattern[] = "([a-zA-Z]{1,}(://){1}){0,1}" // scheme
-                         "" // user info
+                         "([-a-zA-Z0-9:%._\\+~#=]{1,}:[-a-zA-Z0-9:%._\\+~#=]{1,}@){0,1}" // user info
                          "[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.([a-zA-Z0-9()]{1,63}){1,}" // host
                          "(:{1}[0-9]{1,}){0,1}" // port
                          "(/{1}[\\(\\-\\.a-zA-Z0-9~!$&'*+,;=:@\\)]{1,}){0,}(/){0,1}" // path
@@ -267,6 +289,26 @@ postgrurl* string_to_url(char* str){
             ereport(ERROR,(errmsg("not a valid URL")));
         }
         // ereport(ERROR,(errmsg("n_subchars %d", n_subchars)));
+    }
+
+    n_subchars = 0;
+    // extracting user info if there is any
+    compile_regex(& r, userinfo_pattern);
+    match_regex(& r, str, idxs_start, idxs_end, &n_subchars);
+    if (n_subchars > 0){
+            if (n_subchars > 1){
+                ereport(ERROR,(errmsg("only one user_info part is allowed")));
+            }
+            
+            // extract user_info from url
+            with_userinfo = 1;
+            int len = idxs_end[0]-idxs_start[0];
+            user_info = malloc(sizeof(char) * (len+1));
+            strcpy(user_info,"");
+            slice(str, user_info, idxs_start[0], idxs_end[0]);
+        }
+    if (with_userinfo == 1){
+        str = strremove(str, user_info);
     }
 
     //determine which parts are contained in the URL
@@ -474,6 +516,15 @@ postgrurl* string_to_url(char* str){
     else{
         url->scheme = NULL;
     }
+    if(with_userinfo!=0){
+        url->user_info = malloc(strlen(user_info) + 1);
+		strcpy(url->user_info, user_info);
+        strcpy(raw+strlen(raw), user_info);
+        // strcpy(raw+strlen(raw), "@");
+    }
+    else{
+        url->user_info = NULL;
+    }
 
 	if(strcmp(host,"")!=0){
 		url->host = malloc(strlen(host) + 1);
@@ -528,6 +579,9 @@ postgrurl* string_to_url(char* str){
     free(raw);
 	free(str_copy);
     free(raw_url);
+    if (with_userinfo != 0){
+        free(user_info);
+    }
 
     //Problem
 	//free(query_split);
@@ -680,7 +734,7 @@ postgrurl* URLFromProtocolHostPortFile(char* protocol, char* host, int port, cha
     int defaultPort = assignDefaultPort(protocol);
     url->defaultPort=defaultPort;
 
-    snprintf(raw, raw_size, "%s://%s:%d/%s", url->scheme, url->host, url->port, url->file);
+    snprintf(raw, raw_size, "%s://%s:%d%s", url->scheme, url->host, url->port, url->file);
     url->raw = strdup(raw);
     pfree(raw);
     return url;
@@ -700,7 +754,7 @@ postgrurl* URLFromProtocolHostFile(char* protocol, char* host, char* file) {
     url->defaultPort = defaultPort;
     url->port = 0; // TODO: Change to null if it doesn't break other code.
 
-    snprintf(raw, raw_size, "%s://%s/%s", protocol, host, file);
+    snprintf(raw, raw_size, "%s://%s%s", protocol, host, file);
     url->raw = strdup(raw);
     pfree(raw);
     return url;
@@ -837,9 +891,9 @@ postgrurl* URLFromContextAndSpec(postgrurl* context, char* spec) {
 
     // Ignore if the query does not contains any port
     if(context->port == 0){
-      snprintf(raw, raw_size, "%s://%s/%s%s", context->scheme, context->host, file, query);
+      snprintf(raw, raw_size, "%s://%s%s%s", context->scheme, context->host, file, query);
     } else{
-        snprintf(raw, raw_size, "%s://%s:%d/%s%s", context->scheme, context->host,context->port ,file, query);
+        snprintf(raw, raw_size, "%s://%s:%d%s%s", context->scheme, context->host,context->port ,file, query);
     }
 
 
@@ -1165,6 +1219,7 @@ Datum getPath(PG_FUNCTION_ARGS);
 Datum getProtocol(PG_FUNCTION_ARGS);
 Datum getQuery(PG_FUNCTION_ARGS);
 Datum getRef(PG_FUNCTION_ARGS);
+Datum getUserInfo(PG_FUNCTION_ARGS);
 Datum sameFile(PG_FUNCTION_ARGS);
 Datum sameHost(PG_FUNCTION_ARGS);
 Datum toString(PG_FUNCTION_ARGS);
@@ -1422,7 +1477,23 @@ Datum getUserInfo(PG_FUNCTION_ARGS){
     /*
         Returns the user info through the url, if exists.
     */
-    PG_RETURN_NULL();
+    postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
+    char * output;
+    if(url->user_info != NULL){
+        output = (char *) palloc((strlen(url->user_info)+1)*sizeof(char));
+        strcpy(output, url->user_info);
+    }
+    else{
+        ereport(ERROR,
+            (
+             errmsg("No user_info in the url.")
+            )
+        );
+    }
+    output = psprintf("%s", output);
+    PG_RETURN_CSTRING(output);
+    pfree(output);
+    pfree(url);
 }
 
 PG_FUNCTION_INFO_V1(sameFile);
