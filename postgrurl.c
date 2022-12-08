@@ -196,8 +196,6 @@ postgrurl* string_to_url(char* str){
 
     //helper variables
 	// char *str;
-    char *str1;
-    char *str2;
     char *str_copy;
 	char *value;
 	char *query_split;
@@ -228,6 +226,7 @@ postgrurl* string_to_url(char* str){
     char *raw_url;
     regex_t r;
     int only_scheme = 0;
+    int len;
 
     //memory allocation
     scheme = malloc(sizeof(char) * (strlen(str)+1));
@@ -302,7 +301,7 @@ postgrurl* string_to_url(char* str){
             
             // extract user_info from url
             with_userinfo = 1;
-            int len = idxs_end[0]-idxs_start[0];
+            len = idxs_end[0]-idxs_start[0];
             user_info = malloc(sizeof(char) * (len+1));
             strcpy(user_info,"");
             slice(str, user_info, idxs_start[0], idxs_end[0]);
@@ -1393,7 +1392,6 @@ Datum getPort(PG_FUNCTION_ARGS){
             )
         );
     }
-    pfree(output);
     pfree(url);
 }
 
@@ -1453,8 +1451,8 @@ Datum getRef(PG_FUNCTION_ARGS){
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
     char * output;
     char delim[] = "#";
-    output = (char *) palloc((strlen(url->raw)+1)*sizeof(char));
-    output = strtok(url->raw, delim); //
+    output = (char *) palloc((strlen(url->file)+1)*sizeof(char));
+    output = strtok(url->file, delim); //
     output = strtok(NULL, delim);
     if (output == NULL) {
         ereport(ERROR,
