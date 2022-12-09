@@ -19,6 +19,7 @@ Repository for the final project for the Databases Architecture course of the UL
 ## Assumptions
 
 - Again, we are assuming the extension is compiled under a valid gcc, not clang or other compiler, since it will probably throw errors either in compilation time or behave incorrectly when implementing the extension. If you are trying the project on OSX with M1 or M2 chip, the recommendation is to try this on a virtual machine on the cloud.
+- A defaut port is only assigned when a protocol is present in the URL but no port (i.e. http://example.com/file -> default Port = 80 ; www.example.com/file -> default Port stays 0 because no protocol is defined) 
 - We are considering the file part of the URL as the `/path/to/file.txt`, without including the query part or any other part of the URL as part of the file.
 - The hierarchy of comparisons in our URL implementation is as follows (important to understand this for the btree implementation):
   - Host vs host:
