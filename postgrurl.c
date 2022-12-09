@@ -47,11 +47,17 @@ typedef struct postgrurl postgrurl;
 
 void slice(const char *str, char *result, size_t start, size_t end)
 {
+    /*
+        extract portion of str from index start to index end and save to result
+    */
     strncpy(result, str + start, end - start);
 }
 
 static int compile_regex (regex_t * r, const char * regex_text)
 {
+    /*
+        compile regex_text to r
+    */
     int status = regcomp (r, regex_text, REG_EXTENDED);
     if (status != 0) {
 	   char error_message[MAX_ERROR_MSG];
@@ -64,6 +70,9 @@ static int compile_regex (regex_t * r, const char * regex_text)
 }
 
 char *strremove(char *str, const char *sub) {
+    /*
+        remove a substring sub from string str
+    */
     char *p, *q, *r;
     if (*sub && (q = r = strstr(str, sub)) != NULL) {
         size_t len = strlen(sub);
@@ -79,6 +88,11 @@ char *strremove(char *str, const char *sub) {
 
 static int match_regex (regex_t * r, const char * to_match, int idxs_start[], int idxs_end[], int* n_subchars)
 {
+    /*
+        check if the compiled regex pattern exists in the string to_match, if exists, the starting 
+        and finishing indexes of the matches are put to the inputted integer arrays idxs_start[] and idxs_end[]
+        respectively and the number of matches are put to n_subchars
+    */
     /* "P" is a pointer into the string which points to the end of the
        previous match. */
     const char * p = to_match;
@@ -106,14 +120,6 @@ static int match_regex (regex_t * r, const char * to_match, int idxs_start[], in
             finish = m[i].rm_eo + (p - to_match);
             idxs_start[*n_subchars] = start;
             idxs_end[*n_subchars] = finish;
-            // if (i == 0) {
-            //     printf ("$& is ");
-            // }
-            // else {
-            //     printf ("$%d is ", i);
-            // }
-            // printf ("'%.*s' (bytes %d:%d)\n", (finish - start),
-            //         to_match + start, start, finish);
         }
         p += m[0].rm_eo;
         *n_subchars = *n_subchars+1;
@@ -1332,30 +1338,26 @@ Datum getFile(PG_FUNCTION_ARGS){
 
     postgrurl *url = (postgrurl *) PG_GETARG_POINTER(0);
     char file_pattern[] = "/{1}[\\(a-zA-Z0-9~!$&'*+,;=:@\\)\\-]{1,}[.]{1}[a-zA-Z0-9]{1,}";
-    // char path_pattern[] = "([^/]/{1}[a-zA-Z0-9\\-\\_.]{1,}){1,}";
     int n_subchars = 0;
     int idxs_start[10];
     int idxs_end[10];
     regex_t r;
     char * output;
     char * path;
+    int len;
 
     if(url->file != NULL){
-        output = (char *) palloc((strlen(url->file)+1)*sizeof(char));
         path = (char *) palloc((strlen(url->file)+1)*sizeof(char));
 
         strcpy(path, url->file);
         compile_regex(& r, file_pattern);
         match_regex(& r, path, idxs_start, idxs_end, &n_subchars);
-        // ereport(ERROR,(errmsg("n_subchars: %d: %d-%d", n_subchars, idxs_start[0], idxs_end[0])));
         if (n_subchars > 0){ // if path match exists
             if (n_subchars > 1){ // if it's more than one
-                ereport(ERROR,
-                    (
-                    errmsg("Only a single instance of file is allowed in a URL")
-                    )
-                );
+                ereport(ERROR,(errmsg("Only a single instance of file is allowed in a URL")));
             }
+            len = idxs_end[0]-idxs_start[0];
+            output = (char *) palloc((len+1)*sizeof(char));
             slice(path, output, idxs_start[0]+1, idxs_end[0]);
             PG_RETURN_CSTRING(output);
         }
