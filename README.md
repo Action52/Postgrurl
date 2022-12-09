@@ -19,7 +19,16 @@ Repository for the final project for the Databases Architecture course of the UL
 ## Assumptions
 
 - Again, we are assuming the extension is compiled under a valid gcc, not clang or other compiler, since it will probably throw errors either in compilation time or behave incorrectly when implementing the extension. If you are trying the project on OSX with M1 or M2 chip, the recommendation is to try this on a virtual machine on the cloud.
-- A defaut port is only assigned when a protocol is present in the URL but no port (i.e. http://example.com/file -> default Port = 80 ; www.example.com/file -> default Port stays 0 because no protocol is defined) 
+- We expect the input URL to have the following parts in this order:
+  - Protocol`://` (optional), requied if host is not defined
+  - User Info`@` (optional), in the form `user:password`
+  - Host (optional), in the form: `subdomain.domain.domain_extension`, can contain several subdomains separated by `.`, subdomain and domain parts cumullatively contain up to 256 characters and domain extension contains up to 63 characters, required if protocol is not defined
+  - `:`Port (optional), contains numeric characters
+  - `/`Path, in the form: `/path_segment/filename` (optional), can contain several path segments separated by `/`, if path exists, filename is optional
+  - `?`Query (optional) 
+  - `#`Reference (optional)
+- If the input does not follow the format above with that order, the error `ERROR:  not a valid URL` will be returned
+-  A defaut port is only assigned when a protocol is present in the URL but no port (i.e. http://example.com/file -> default Port = 80 ; www.example.com/file -> default Port stays 0 because no protocol is defined) 
 - We are considering the file part of the URL as the `/path/to/file.txt`, without including the query part or any other part of the URL as part of the file.
 - In the `URL(url context, string spec)` constructor, the assumption is that we will not process `.` and `..` in the path and instead assume it it part of the file. I.e `http://www.host.com/path/` combined with `/subpath/./..` would be `http://www.host.com/path/subpath/./..` without normalizing the URL.
 - The hierarchy of comparisons in our URL implementation is as follows (important to understand this for the btree implementation):
@@ -265,6 +274,17 @@ SELECT * FROM testurl;
  10 | https://facebook.com:8888/random/path
 (10 rows)
 
+```
+
+We also defined helper functions which return a particular part of the inputted URL. If the part is not in the URL, error will be returned.
+
+```SELECT getFile('http://test.com/file.txt'::postgrurl);
+SELECT getHost('http://test.com:8239/hola?query=6'::postgrurl);
+SELECT getPort('http://test.com:8239/hola?query=6'::postgrurl);
+SELECT getDefaultPort('sftp://test.com/hola?query=6'::postgrurl);
+SELECT getProtocol('http://test.com:8239/hola?query=6'::postgrurl);
+SELECT getQuery('http://test.com:8239/hola?query=6'::postgrurl);
+SELECT getRef('http://test.com:8239/hola#somewhere'::postgrurl);
 ```
 
 Finally delete the test data if necessary.
