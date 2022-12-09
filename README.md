@@ -52,9 +52,9 @@ Please note that running `make installcheck` will most probably mark an error on
 
 To verify that the tests are working, please run the `make installcheck` and manually verify that the output is correct in the `results/postgrurl_test.out` file that is generated after running the previous command.
 
-The other option is to run the tests manually by copy-pasting them into the computer.
+The other option is to run the tests manually by copy-pasting them into the compiler.
 
-To better understand the usage, we recommend following manually the steps bellow to create the extension and try some of the tests from the test file manually.
+To better understand the usage, we recommend following manually the steps below to create the extension and try some of the tests from the test file manually.
 
 ## Usage
 
