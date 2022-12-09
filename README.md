@@ -20,6 +20,7 @@ Repository for the final project for the Databases Architecture course of the UL
 
 - Again, we are assuming the extension is compiled under a valid gcc, not clang or other compiler, since it will probably throw errors either in compilation time or behave incorrectly when implementing the extension. If you are trying the project on OSX with M1 or M2 chip, the recommendation is to try this on a virtual machine on the cloud.
 - We are considering the file part of the URL as the `/path/to/file.txt`, without including the query part or any other part of the URL as part of the file.
+- In the `URL(url context, string spec)` constructor, the assumption is that we will not process `.` and `..` in the path and instead assume it it part of the file. I.e `http://www.host.com/path/` combined with `/subpath/./..` would be `http://www.host.com/path/subpath/./..` without normalizing the URL.
 - The hierarchy of comparisons in our URL implementation is as follows (important to understand this for the btree implementation):
   - Host vs host:
     - If equal, proceed to compare file section.
